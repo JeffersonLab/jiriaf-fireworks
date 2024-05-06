@@ -13,6 +13,6 @@ export log="$HOME/jrm-launch/logs"
 
 docker run -it --rm --name=lpad -v $log:/fw/logs \
  -e nnodes=$nnodes -e nodetype=$nodetype \
-  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest /fw/main.sh # lpad -l /fw/my_launchpad.yaml reset 
+  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest # lpad -l /fw/my_launchpad.yaml reset 
 
 
