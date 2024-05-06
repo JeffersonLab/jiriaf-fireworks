@@ -47,33 +47,6 @@ def launch_jrm_script():
     # translate walltime to seconds, eg 01:00:00 -> 3600
     jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(slurm.walltime.split(":"))))
 
-    # task1 = (
-    #     f"#!/bin/bash\n\n" \
-    #     f"export NODENAME={jrm.nodename}\n\n" \
-    #     f"export KUBECONFIG={jrm.kubeconfig}\n\n" \
-    #     f"export VKUBELET_POD_IP={jrm.vkubelet_pod_ip}\n\n" \
-    #     f"export KUBELET_PORT={jrm.kubelet_port}\n\n" \
-    #     f"export JIRIAF_WALLTIME={jrm_walltime}\n\n" \
-    #     f"export JIRIAF_NODETYPE={slurm.constraint}\n\n" \
-    #     f"export JIRIAF_SITE={jrm.site}\n\n" \
-        
-    #     f"echo JRM: $NODENAME is running on $HOSTNAME\n\n" \
-    #     f"echo Walltime: $JIRIAF_WALLTIME, nodetype: $JIRIAF_NODETYPE, site: $JIRIAF_SITE\n\n" \
-        
-    #     # set ssh tunneling for apiserver and metrics-server
-    #     f"ssh -NfL {jrm.apiserver_port}:localhost:{jrm.apiserver_port} {ssh.apiserver}\n\n" \
-    #     f"ssh -NfR {jrm.kubelet_port}:localhost:{jrm.kubelet_port} {ssh.metrics_server}\n\n" \
-        
-    #     # copy vk-cmd to node
-    #     f"shifter --image={jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{jrm.nodename}\"\n\n" \
-    #     f"cd `pwd`/{jrm.nodename}\n\n" \
-        
-    #     f"echo api-server: {jrm.apiserver_port}, kubelet: {jrm.kubelet_port}\n\n" \
-        
-    #     # start vk-cmd
-    #     f"./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE\n\n" \
-    # )
-
     script = f"""
     #!/bin/bash
 
