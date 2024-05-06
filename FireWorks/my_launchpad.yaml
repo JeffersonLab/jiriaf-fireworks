@@ -1,4 +1,4 @@
-host: localhost
+host: 172.17.0.1
 logdir: /fw/logs
 mongoclient_kwargs: {}
 name: jiriaf
