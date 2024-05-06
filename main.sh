@@ -9,7 +9,7 @@ export kubelet_port=10000
 export account=m4637
 
 mkdir -p $HOME/jrm-launch/logs
-export log="$HOME/jrm-launch/logs
+export log="$HOME/jrm-launch/logs"
 
 docker run -it --rm --name=lpad -v $log:/fw/logs \
  -e nnodes=$nnodes -e nodetype=$nodetype \
