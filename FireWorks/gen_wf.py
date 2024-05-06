@@ -1,88 +1,100 @@
 from fireworks import Workflow, Firework, LaunchPad, ScriptTask, TemplateWriterTask
 import os
 import time
+from monty.serialization import loadfn
+
+LPAD = LaunchPad.from_file('/fw/my_launchpad.yaml')
+
+class Slurm:
+    def __init__(self, config_file="/fw/node-config.yaml"):
+        self.node_config = loadfn(config_file) if config_file else {}
+        if not self.node_config:
+            raise ValueError("node-config.yaml is empty")
+        self.nnode = self.node_config["slurm"]["nnodes"]
+        self.qos = self.node_config["slurm"]["qos"]
+        self.walltime = self.node_config["slurm"]["walltime"]
+        self.account = self.node_config["slurm"]["account"]
+        self.constraint = self.node_config["slurm"]["constraint"]
+
+class Jrm:
+    def __init__(self, config_file="/fw/node-config.yaml"):
+        self.node_config = loadfn(config_file) if config_file else {}
+        if not self.node_config:
+            raise ValueError("node-config.yaml is empty")
+        self.control_plane_ip = self.node_config["jrm"]["control_plane_ip"]
+        self.apiserver_port = self.node_config["jrm"]["apiserver_port"]
+        self.nodename = self.node_config["jrm"]["nodename"]
+        self.kubeconfig = self.node_config["jrm"]["kubeconfig"]
+        self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
+        self.kubelet_port = self.node_config["jrm"]["kubelet_port"]
+        self.site = self.node_config["jrm"]["site"]
+        self.image = self.node_config["jrm"]["image"]
+
+class Ssh:
+    def __init__(self, config_file="/fw/node-config.yaml"):
+        self.node_config = loadfn(config_file) if config_file else {}
+        if not self.node_config:
+            raise ValueError("node-config.yaml is empty")
+        self.apiserver = self.node_config["ssh"]["apiserver"]
+        self.metrics_server = self.node_config["ssh"]["metrics_server"]
 
 
-LPAD = LaunchPad.from_file('my_launchpad.yaml')
-
-def ersap_wf(wf_id, nnode=1, qos="debug", walltime="00:30:00", category="ersap-node1"):
-    # if walltime is larger than 1 hour, give warning and replace it with 30 miiutes
-    if walltime > "01:00:00" and qos == "debug":
-        print("Warning: walltime is larger than 1 hour, replace it with 30 minutes")
-        walltime = "00:30:00"
+def launch_jrm_script():
+    slurm = Slurm()
+    jrm = Jrm()
+    ssh = Ssh()
     
-    fw_name = f"ersap-node{wf_id}"
-    
-    vk_string = ("#!/bin/bash\n\n"
-                "export NODENAME=" + fw_name + "\n"
-                "export KUBECONFIG=/global/homes/j/jlabtsai/run-vk/kubeconfig/mylin\n\n"
-                "ssh -NfL 46859:localhost:46859 mylin\n\n"
-                "shifter --image=docker:jlabtsai/vk-cmd:no-vk-container -- /bin/bash -c \"cp -r /vk-cmd `pwd`\"\n\n"
-                "cd `pwd`/vk-cmd\n\n"
-                "./start.sh $KUBECONFIG $NODENAME")
+    # translate walltime to seconds, eg 01:00:00 -> 3600
+    jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(slurm.walltime.split(":"))))
 
+    vk_string = (
+        f"#!/bin/bash\n\n" \
+        f"export NODENAME={jrm.nodename}\n\n" \
+        f"export KUBECONFIG={jrm.kubeconfig}\n\n" \
+        f"export VKUBELET_POD_IP={jrm.vkubelet_pod_ip}\n\n" \
+        f"export KUBELET_PORT={jrm.kubelet_port}\n\n" \
+        f"export JIRIAF_WALLTIME={jrm_walltime}\n\n" \
+        f"export JIRIAF_NODETYPE={slurm.constraint}\n\n" \
+        f"export JIRIAF_SITE={jrm.site}\n\n" \
+        
+        f"echo JRM: $NODENAME is running on $HOSTNAME\n\n" \
+        f"echo Walltime: $JIRIAF_WALLTIME, nodetype: $JIRIAF_NODETYPE, site: $JIRIAF_SITE\n\n" \
+        
+        f"ssh -NfL {jrm.apiserver_port}:localhost:{jrm.apiserver_port} {ssh.apiserver}\n\n" \
+        f"ssh -NfR {jrm.kubelet_port}:localhost:{jrm.kubelet_port} {ssh.metrics_server}\n\n" \
+        
+        f"shifter --image={jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{jrm.nodename}\"\n\n" \
+        f"cd `pwd`/{jrm.nodename}\n\n" \
+        
+        f"echo api-server: {jrm.apiserver_port}, kubelet: {jrm.kubelet_port}\n\n" \
+        
+        f"./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE"
+    )
 
     task1 = ScriptTask.from_str(vk_string)
     
-    fw = Firework([task1], name=fw_name)
-    fw.spec["_category"] = category
-    fw.spec["_queueadapter"] = {"job_name": fw_name, "walltime": walltime,
-                                "qos": qos, "nodes": nnode}
+    fw = Firework([task1], name=f"{jrm.site}-{jrm.nodename}")
+    fw.spec["_category"] = jrm.site
+    fw.spec["_queueadapter"] = {
+        "job_name": f"{jrm.site}_{jrm.nodename}",
+        "walltime": slurm.walltime,
+        "qos": slurm.qos,
+        "nodes": slurm.nnode,
+        "account": slurm.account,
+        "constraint": slurm.constraint
+        }
+    
     # preempt has min walltime of 2 hours (can get stop after 2 hours)
     # debug_preempt has max walltime of 30 minutes (can get stop after 5 minutes)
     wf = Workflow([fw], {fw: []})
-    wf.name = fw_name
+    wf.name = f"{jrm.site}_{jrm.nodename}"
     return wf
 
 
-def add_wf(number_of_wfs=8, job_setting={"nnode": 1, "qos": "regular", "walltime": "02:00:00", "category": "ersap-node1"}):
-# this script is to launch the workflows based on:
-# 1. Constantly check if the latest added workflow is running
-# 2. If not, waith for 30 seconds and check again
-# 3. If yes, wait for 120 seconds and add the next workflow
-# 4. If the latest launched workflow is the last one, exit
-# 5. add the first workflow when no workflow is reserving or running
-    while True:
-        # get the list of workflows
-        wfs = LPAD.get_wf_ids()
-        wfs.sort()
-        if len(wfs) == 0:
-            print("No workflow is running or reserving, add the first workflow")
-            LPAD.add_wf(ersap_wf(wf_id=1, **job_setting))
-            continue
-        # get the latest workflow
-        latest_wf = wfs[-1]
-        print(f"Latest workflow is {latest_wf}")
-        # get the status of the latest workflow
-        wf_status = LPAD.get_wf_summary_dict(latest_wf)["state"]
-        wf_name = LPAD.get_wf_summary_dict(latest_wf)["name"]
-        # if the latest workflow is not running, wait for 30 seconds and check again
-        while wf_status != "RUNNING":
-            time.sleep(3)
-            wf_status = LPAD.get_wf_summary_dict(latest_wf)["state"]
-            print(f"Workflow {wf_name} is in {wf_status} state")
-        # if the latest workflow is running, wait for 120 seconds and add the next workflow
-        # launch the pod tha has the label name of the wf name
-        print(f"Workflow {wf_name} is running; launch the pod {wf_name}")
-        # check if the pod is already running
-        if os.system(f"kubectl get pods -l app={wf_name} | grep {wf_name}"):
-            print(f"Pod {wf_name} is not running; launch the pod")
-            os.system(f"kubectl apply -f /workspaces/JIRIAF-test-platform/vk/configmap/jobs/pod.yml -l app={wf_name}")
-        else:
-            print(f"Pod {wf_name} is running; do nothing")
-        # print("Wait for 120 seconds")
-        # time.sleep(120)
-        # if the latest workflow is the last one, exit
-        if latest_wf == number_of_wfs:
-            print(f"The last workflow {wf_name} is running; exit")
-            return # exit the script
-        # add the next workflow
-        else:
-            next_wf = latest_wf + 1
-            LPAD.add_wf(ersap_wf(wf_id=next_wf, **job_setting))
-            print(f"Add workflow {next_wf}")
-            # subprocess.run(["qlaunch", "-r", "singleshot", "-f", f"{next_wf.fws[-1].fw_id}"])
+def add_jrm():
+    wf = launch_jrm_script()
+    LPAD.add_wf(wf)
+    print(f"Add workflow {wf.name} to LaunchPad")
 
 if __name__ == "__main__":
-    add_wf(number_of_wfs=1, job_setting={"nnode": 1, "qos": "debug", "walltime": "00:30:00", "category": "ersap-node1"})
-    # LPAD.add_wf(ersap_wf(wf_id=1, nnode=2, qos="preempt", walltime="02:00:00"))
+    add_jrm()
