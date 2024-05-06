@@ -10,6 +10,6 @@ export account=m4637
 
 docker run -it --rm --name=lpad \
  -e nnodes=$nnodes -e nodetype=$nodetype \
-  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest bash # lpad -l /fw/my_launchpad.yaml reset 
+  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest /fw/main.sh # lpad -l /fw/my_launchpad.yaml reset 
 
 
