@@ -1,0 +1,5 @@
+2024-05-06 13:51:10,385 DEBUG Aggregation '[{'$match': {}}, {'$project': {'nodes': True, '_id': False}}]'.
+2024-05-06 13:54:28,586 DEBUG Aggregation '[{'$match': {}}, {'$project': {'nodes': True, '_id': False}}]'.
+2024-05-06 16:20:05,830 DEBUG Aggregation '[{'$match': {}}, {'$project': {'nodes': True, '_id': False}}]'.
+2024-05-06 16:21:25,475 DEBUG Aggregation '[{'$match': {}}, {'$project': {'nodes': True, '_id': False}}]'.
+2024-05-06 16:22:29,337 DEBUG Aggregation '[{'$match': {}}, {'$project': {'nodes': True, '_id': False}}]'.
