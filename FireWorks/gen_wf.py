@@ -91,8 +91,8 @@ def launch_jrm_script():
     ssh -NfL {jrm.apiserver_port}:localhost:{jrm.apiserver_port} {ssh.apiserver}
     ssh -NfR {jrm.kubelet_port}:localhost:{jrm.kubelet_port} {ssh.metrics_server}
 
-    shifter --image={jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/{jrm.nodename}"
-    cd `pwd`/{jrm.nodename}
+    shifter --image={jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/vk-cmd"
+    cd `pwd`/vk-cmd
 
     echo api-server: {jrm.apiserver_port}, kubelet: {jrm.kubelet_port}
 
