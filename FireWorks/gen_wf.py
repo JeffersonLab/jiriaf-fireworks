@@ -14,7 +14,7 @@ class Slurm:
         self.qos = self.node_config["slurm"]["qos"]
         self.walltime = self.node_config["slurm"]["walltime"]
         self.account = self.node_config["slurm"]["account"]
-        self.constraint = self.node_config["slurm"]["constraint"]
+        self.nodetype = self.node_config["slurm"]["nodetype"]
 
 class Jrm:
     def __init__(self, config_file="/fw/node-config.yaml"):
@@ -82,7 +82,7 @@ def launch_jrm_script():
     export VKUBELET_POD_IP={jrm.vkubelet_pod_ip}
     export KUBELET_PORT={jrm.kubelet_port}
     export JIRIAF_WALLTIME={jrm_walltime}
-    export JIRIAF_NODETYPE={slurm.constraint}
+    export JIRIAF_NODETYPE={slurm.nodetype}
     export JIRIAF_SITE={jrm.site}
 
     echo JRM: $NODENAME is running on $HOSTNAME
@@ -113,7 +113,7 @@ def launch_jrm_script():
         "qos": slurm.qos,
         "nodes": slurm.nnode,
         "account": slurm.account,
-        "constraint": slurm.constraint
+        "constraint": slurm.nodetype
         }
     
     # preempt has min walltime of 2 hours (can get stop after 2 hours)
