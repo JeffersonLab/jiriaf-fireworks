@@ -39,3 +39,11 @@ To use this script, simply run it in a bash shell:
 ## Note
 - `/fw/my_launchpad.yaml` is the yaml file for the launchpad. You can modify it to change the launchpad settings.
 - Make sure that the port of mongodb (27017 as default) is reachable for the container. If not reachable, check the port is opened to all interfaces or not. 
+
+## Setup on db server
+- Setup the db and user that are used in `my_launchpad.yaml` file. Use `FireWorks/util/create_db.sh` script to create the db and user.
+
+## Setup on compute node
+- Setup python environment based on the `requirements.txt` file.
+- Setup configuration files using `FireWorks/util/create_project.py` script. This will create two files `my_qadapter.yaml` and `my_fworker.yaml`.
+- Make sure that the mongodb is reachable from the compute node. If not, you can use ssh tunneling to connect to the mongodb.
