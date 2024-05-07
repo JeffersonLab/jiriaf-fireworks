@@ -37,7 +37,7 @@ To use this script, simply run it in a bash shell:
 ```
 
 ## Note
-- `/fw/my_launchpad.yaml` is the yaml file for the launchpad. You can modify it to change the launchpad settings.
+- `/fw/util/my_launchpad.yaml` is the yaml file for the launchpad. You can modify it to change the launchpad settings.
 - Make sure that the port of mongodb (27017 as default) is reachable for the container. If not reachable, check the port is opened to all interfaces or not. 
 
 ## Setup on db server

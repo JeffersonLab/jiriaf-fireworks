@@ -3,7 +3,7 @@ import os
 import time
 from monty.serialization import loadfn
 
-LPAD = LaunchPad.from_file('/fw/my_launchpad.yaml')
+LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 
 class Slurm:
     def __init__(self, config_file="/fw/node-config.yaml"):

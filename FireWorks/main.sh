@@ -29,10 +29,10 @@ case "$1" in
         python /fw/gen_wf.py
         ;;
     get_wf)
-        lpad -l /fw/my_launchpad.yaml get_wflows -t 
+        lpad -l /fw/util/my_launchpad.yaml get_wflows -t 
         ;;
     delete_wf)
-        lpad -l /fw/my_launchpad.yaml delete_wflows -i $2
+        lpad -l /fw/util/my_launchpad.yaml delete_wflows -i $2
         ;;
     *)
         handle_invalid_arg
