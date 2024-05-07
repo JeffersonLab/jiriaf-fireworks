@@ -1,6 +1,5 @@
 # README.md
-Test
-Test
+
 ## Overview
 adaf
 The `main.sh` script is a bash script used to set up and run a Docker container for launching Slurm jobs for deploying JRMs. The script sets several environment variables and then runs a Docker container with specific settings.
