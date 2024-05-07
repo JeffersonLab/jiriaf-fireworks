@@ -1,11 +1,32 @@
 #!/bin/bash
 
-# Reset environment variables
-unset nnodes nodetype walltime account nodename site kubelet_port
+#!/bin/bash
 
-# Check if environment variables are set
+# Check if each variable is set and print a message if it's not
+if [ -z "$nnodes" ]; then
+    echo "The nnodes variable is not set."
+fi
+if [ -z "$nodetype" ]; then
+    echo "The nodetype variable is not set."
+fi
+if [ -z "$walltime" ]; then
+    echo "The walltime variable is not set."
+fi
+if [ -z "$account" ]; then
+    echo "The account variable is not set."
+fi
+if [ -z "$nodename" ]; then
+    echo "The nodename variable is not set."
+fi
+if [ -z "$site" ]; then
+    echo "The site variable is not set."
+fi
+if [ -z "$kubelet_port" ]; then
+    echo "The kubelet_port variable is not set."
+fi
+
+# If any of the variables are not set, exit the script
 if [ -z "$nnodes" ] || [ -z "$nodetype" ] || [ -z "$walltime" ] || [ -z "$account" ] || [ -z "$nodename" ] || [ -z "$site" ] || [ -z "$kubelet_port" ]; then
-    echo "One or more environment variables are not set. Please set the following variables: nnodes, nodetype, walltime, account, nodename, site, kubelet_port."
     exit 1
 fi
 
@@ -32,4 +53,3 @@ ssh:
     apiserver: login04
     metrics_server: login04
 EOF
-
