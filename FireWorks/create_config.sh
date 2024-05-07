@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Reset environment variables
+unset nnodes nodetype walltime account nodename site kubelet_port
+
+# Check if environment variables are set
+if [ -z "$nnodes" ] || [ -z "$nodetype" ] || [ -z "$walltime" ] || [ -z "$account" ] || [ -z "$nodename" ] || [ -z "$site" ] || [ -z "$kubelet_port" ]; then
+    echo "One or more environment variables are not set. Please set the following variables: nnodes, nodetype, walltime, account, nodename, site, kubelet_port."
+    exit 1
+fi
+
 cat << EOF > /fw/node-config.yaml
 slurm:
     nnodes: ${nnodes}
