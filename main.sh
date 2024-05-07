@@ -13,6 +13,6 @@ export logs="$HOME/jrm-launch/logs"
 
 docker run -it --rm --name=jrm-fw -v $logs:/fw/logs \
  -e nnodes=$nnodes -e nodetype=$nodetype \
-  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest
+  -e walltime=$walltime -e nodename=$nodename -e site=$site -e kubelet_port=$kubelet_port -e account=$account jlabtsai/jrm-fw:latest $@
 
 
