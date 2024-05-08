@@ -47,3 +47,6 @@ To use this script, simply run it in a bash shell:
 - Setup python environment based on the `requirements.txt` file.
 - Setup configuration files using `FireWorks/util/create_project.py` script. This will create two files `my_qadapter.yaml` and `my_fworker.yaml`.
 - Make sure that the mongodb is reachable from the compute node. If not, you can use ssh tunneling to connect to the mongodb.
+
+## Todo
+- The `kubelet_port` should be unique for each JRM. Now it is set to `10000 + port` where port is the number of JRMs that will be launched.

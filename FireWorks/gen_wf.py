@@ -90,7 +90,7 @@ def launch_jrm_script():
     for port in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
-        script, nodename = task.get_jrm_script(timestamp, 10000+port)
+        script, nodename = task.get_jrm_script(timestamp, 10000+port) # kubelet port starts from 10000; this is not good!
         nodenames.append(nodename)
 
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
