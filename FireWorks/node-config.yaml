@@ -2,7 +2,7 @@ slurm:
   nnodes: 1
   walltime: 00:30:00
   qos: debug
-  account: m4637 #m3792 - nersc
+  account: m3792 #m4637 #m3792 - nersc
   constraint: cpu
 
 jrm:

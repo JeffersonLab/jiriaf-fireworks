@@ -86,18 +86,20 @@ def launch_jrm_script():
     
     task = Task(slurm, jrm, ssh)
 
-    tasks = []
+    tasks, nodenames = [], []
     for port in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
         script, nodename = task.get_jrm_script(timestamp, 10000+port)
+        nodenames.append(nodename)
+
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
         # tasks.append(ScriptTask.from_str(f"srun --nodes=1 sh {nodename}.sh& wait; echo 'Node {nodename} is done'"))
         # sleep 1 second
         time.sleep(1)
 
-    exec_task = ScriptTask.from_str("for i in *.sh; do srun --nodes=1 sh $i& done; wait")
+    exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
     tasks.append(exec_task)
 
     fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
