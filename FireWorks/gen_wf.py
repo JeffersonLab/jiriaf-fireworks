@@ -1,7 +1,7 @@
 from fireworks import Workflow, Firework, LaunchPad, ScriptTask, TemplateWriterTask
-import os
 import time
 from monty.serialization import loadfn
+import textwrap
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 
@@ -39,49 +39,71 @@ class Ssh:
         self.metrics_server = self.node_config["ssh"]["metrics_server"]
 
 
+class Task:
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
+        self.slurm = slurm_instance
+        self.jrm = jrm_instance
+        self.ssh = ssh_instance
+
+    def get_jrm_script(self, node_id, kubelet_port):
+        # translate walltime to seconds, eg 01:00:00 -> 3600
+        jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
+        nodename = f"{self.jrm.nodename}-{node_id}"
+
+        script = textwrap.dedent(f"""
+            #!/bin/bash
+
+            export NODENAME={nodename}
+            export KUBECONFIG={self.jrm.kubeconfig}
+            export VKUBELET_POD_IP={self.jrm.vkubelet_pod_ip}
+            export KUBELET_PORT={kubelet_port}
+            export JIRIAF_WALLTIME={jrm_walltime}
+            export JIRIAF_NODETYPE={self.slurm.nodetype}
+            export JIRIAF_SITE={self.jrm.site}
+
+            echo JRM: \$NODENAME is running on \$HOSTNAME
+            echo Walltime: \$JIRIAF_WALLTIME, nodetype: \$JIRIAF_NODETYPE, site: \$JIRIAF_SITE
+
+            ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.apiserver}
+            ssh -NfR {kubelet_port}:localhost:{kubelet_port} {self.ssh.metrics_server}
+
+            shifter --image={self.jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/{nodename}"
+            cd `pwd`/{nodename}
+
+            echo api-server: {self.jrm.apiserver_port}, kubelet: {kubelet_port}
+
+            ./start.sh \$KUBECONFIG \$NODENAME \$VKUBELET_POD_IP \$KUBELET_PORT \$JIRIAF_WALLTIME \$JIRIAF_NODETYPE \$JIRIAF_SITE
+        """)
+
+        # Now, `script` contains the bash script with correct indentation.
+        return script, nodename
+
+
 def launch_jrm_script():
     slurm = Slurm()
     jrm = Jrm()
     ssh = Ssh()
     
-    # translate walltime to seconds, eg 01:00:00 -> 3600
-    jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(slurm.walltime.split(":"))))
+    task = Task(slurm, jrm, ssh)
 
-    script = f"""
-    #!/bin/bash
+    tasks = []
+    for port in range(slurm.nnode):
+        # unique timestamp for each node
+        timestamp = str(int(time.time()))
+        script, nodename = task.get_jrm_script(timestamp, 10000+port)
+        tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
+        tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
+        # tasks.append(ScriptTask.from_str(f"srun --nodes=1 sh {nodename}.sh& wait; echo 'Node {nodename} is done'"))
+        # sleep 1 second
+        time.sleep(1)
 
-    export NODENAME={jrm.nodename}
-    export KUBECONFIG={jrm.kubeconfig}
-    export VKUBELET_POD_IP={jrm.vkubelet_pod_ip}
-    export KUBELET_PORT={jrm.kubelet_port}
-    export JIRIAF_WALLTIME={jrm_walltime}
-    export JIRIAF_NODETYPE={slurm.nodetype}
-    export JIRIAF_SITE={jrm.site}
+    exec_task = ScriptTask.from_str("for i in *.sh; do srun --nodes=1 sh $i& done; wait")
+    tasks.append(exec_task)
 
-    echo JRM: $NODENAME is running on $HOSTNAME
-    echo Walltime: $JIRIAF_WALLTIME, nodetype: $JIRIAF_NODETYPE, site: $JIRIAF_SITE
-
-    ssh -NfL {jrm.apiserver_port}:localhost:{jrm.apiserver_port} {ssh.apiserver}
-    ssh -NfR {jrm.kubelet_port}:localhost:{jrm.kubelet_port} {ssh.metrics_server}
-
-    shifter --image={jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/vk-cmd"
-    cd `pwd`/vk-cmd
-
-    echo api-server: {jrm.apiserver_port}, kubelet: {jrm.kubelet_port}
-
-    ./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE
-    """
-
-    task1 = f"echo '{script}' > jrm.sh"
-    task2 = "chmod +x jrm.sh"
-    task3 = "./jrm.sh"
-
-    tasks = [ScriptTask.from_str(task1), ScriptTask.from_str(task2), ScriptTask.from_str(task3)]
-
-    fw = Firework(tasks, name=f"{jrm.site}_{jrm.nodename}")
+    fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
     fw.spec["_category"] = jrm.site
     fw.spec["_queueadapter"] = {
-        "job_name": f"{jrm.site}_{jrm.nodename}",
+        "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
         "qos": slurm.qos,
         "nodes": slurm.nnode,
@@ -92,7 +114,7 @@ def launch_jrm_script():
     # preempt has min walltime of 2 hours (can get stop after 2 hours)
     # debug_preempt has max walltime of 30 minutes (can get stop after 5 minutes)
     wf = Workflow([fw], {fw: []})
-    wf.name = f"{jrm.site}_{jrm.nodename}"
+    wf.name = f"{jrm.site}_{nodename}"
     return wf
 
 
