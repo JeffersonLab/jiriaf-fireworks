@@ -21,12 +21,9 @@ fi
 if [ -z "$site" ]; then
     echo "The site variable is not set."
 fi
-if [ -z "$kubelet_port" ]; then
-    echo "The kubelet_port variable is not set."
-fi
 
 # If any of the variables are not set, exit the script
-if [ -z "$nnodes" ] || [ -z "$nodetype" ] || [ -z "$walltime" ] || [ -z "$account" ] || [ -z "$nodename" ] || [ -z "$site" ] || [ -z "$kubelet_port" ]; then
+if [ -z "$nnodes" ] || [ -z "$nodetype" ] || [ -z "$walltime" ] || [ -z "$account" ] || [ -z "$nodename" ] || [ -z "$site" ]; then
     exit 1
 fi
 
@@ -46,10 +43,9 @@ jrm:
     apiserver_port: 35679
     kubeconfig: /global/homes/j/jlabtsai/config/kubeconfig
     vkubelet_pod_ip: "172.17.0.1"
-    kubelet_port: ${kubelet_port}
     image: docker:jlabtsai/vk-cmd:main
 
 ssh:
-    apiserver: login04
-    metrics_server: login04
+    remote_proxy: perlmutter
+    remote: jlabtsai@128.55.64.13
 EOF
