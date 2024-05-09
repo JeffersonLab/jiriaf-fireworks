@@ -13,6 +13,6 @@ COPY FireWorks/create_config.sh /fw/create_config.sh
 COPY FireWorks/gen_wf.py /fw/gen_wf.py
 COPY FireWorks/launch-jrms.sh /fw/launch-jrms.sh
 
-COPY run-ssh/dist/bash_cmd_REST_API /fw/main/bash_cmd_REST_API
+COPY run-ssh/go/bash_cmd_REST_API /fw/main/bash_cmd_REST_API
 
 ENTRYPOINT [ "/fw/launch-jrms.sh" ]
