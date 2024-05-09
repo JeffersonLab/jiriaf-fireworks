@@ -2,8 +2,23 @@ from fireworks import Workflow, Firework, LaunchPad, ScriptTask, TemplateWriterT
 import time
 from monty.serialization import loadfn
 import textwrap
+import socket, requests, json, logging
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
+
+class Logger:
+    def __init__(self, name):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(f'/fw/logs/{name}.log')
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
+    def log(self, msg):
+        self.logger.debug(msg)
+
 
 class Slurm:
     def __init__(self, config_file="/fw/node-config.yaml"):
@@ -26,7 +41,6 @@ class Jrm:
         self.nodename = self.node_config["jrm"]["nodename"]
         self.kubeconfig = self.node_config["jrm"]["kubeconfig"]
         self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
-        self.kubelet_port = self.node_config["jrm"]["kubelet_port"]
         self.site = self.node_config["jrm"]["site"]
         self.image = self.node_config["jrm"]["image"]
 
@@ -35,8 +49,82 @@ class Ssh:
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
-        self.apiserver = self.node_config["ssh"]["apiserver"]
-        self.metrics_server = self.node_config["ssh"]["metrics_server"]
+        self.remote = self.node_config["ssh"]["remote"]
+        self.remote_proxy = self.node_config["ssh"]["remote_proxy"]
+
+    def send_command(self, command):
+        url = "http://172.17.0.1:8888/run"
+        headers = {'Content-Type': 'application/json'}
+        data = {'command': command}
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+        
+        
+    # def get_available_port(self, ip, start, end):
+    #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #     for port in range(start, end):
+    #         try:
+    #             s.bind((ip, port))
+    #             return port
+    #         except OSError:
+    #             continue
+    #     return None
+    
+    def request_available_port(self, start, end, ip="127.0.0.1"):
+        url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+    
+    def connect_db(self):
+        # send the cmd to REST API server listening 8888
+        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
+        response = self.send_command(cmd)
+        # write response to log
+        logger = Logger('connect_db_logger')
+        # add cmd to response for record
+        response['cmd'] = cmd
+        response["remote_proxy"] = self.remote_proxy
+        response["remote"] = self.remote
+        response["port"] = "27017"
+        logger.log(response)
+
+        
+
+    def connect_apiserver(self, apiserver_port):
+        # send the cmd to REST API server listening 8888
+        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
+        response = self.send_command(cmd)
+        logger = Logger('connect_apiserver_logger')
+        # add cmd to response for record
+        response['cmd'] = cmd
+        response["remote_proxy"] = self.remote_proxy
+        response["remote"] = self.remote
+        response["port"] = apiserver_port
+        logger.log(response)
+    
+    def connect_metrics_server(self, kubelet_port, nodename):
+        # send the cmd to REST API server listening 8888
+        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
+        response = self.send_command(cmd)
+        logger = Logger('connect_metrics_server_logger')
+        # add cmd to response for record
+        response['cmd'] = cmd
+        response["remote_proxy"] = self.remote_proxy
+        response["remote"] = self.remote
+        response["port"] = kubelet_port
+        response["nodename"] = nodename
+        logger.log(response)
+        return response
+
 
 
 class Task:
@@ -64,8 +152,8 @@ class Task:
             echo JRM: \$NODENAME is running on \$HOSTNAME
             echo Walltime: \$JIRIAF_WALLTIME, nodetype: \$JIRIAF_NODETYPE, site: \$JIRIAF_SITE
 
-            ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.apiserver}
-            ssh -NfR {kubelet_port}:localhost:{kubelet_port} {self.ssh.metrics_server}
+            ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.remote}
+            ssh -NfR {kubelet_port}:localhost:{kubelet_port} {self.ssh.remote}
 
             shifter --image={self.jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/{nodename}"
             cd `pwd`/{nodename}
@@ -86,16 +174,26 @@ def launch_jrm_script():
     
     task = Task(slurm, jrm, ssh)
 
+    # run db, apiserver ssh
+    ssh.connect_db()
+    ssh.connect_apiserver(jrm.apiserver_port)
+
     tasks, nodenames = [], []
-    for port in range(slurm.nnode):
+    for _ in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
-        script, nodename = task.get_jrm_script(timestamp, 10000+port) # kubelet port starts from 10000; this is not good!
+        
+        respons = ssh.request_available_port(10000, 19999)
+        port = respons['port']
+        
+        script, nodename = task.get_jrm_script(timestamp, port) # kubelet port starts from 10000; this is not good!
         nodenames.append(nodename)
+
+        ssh.connect_metrics_server(port, nodename)
+        print(f"Node {nodename} is running on port {port}")
 
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
-        # tasks.append(ScriptTask.from_str(f"srun --nodes=1 sh {nodename}.sh& wait; echo 'Node {nodename} is done'"))
         # sleep 1 second
         time.sleep(1)
 
