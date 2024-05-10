@@ -54,27 +54,14 @@ class Ssh:
 
     def send_command(self, command):
         url = "http://172.17.0.1:8888/run"
-        headers = {'Content-Type': 'application/json'}
         data = {'command': command}
-
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-
+        response = requests.post(url, data=data)  # Use data instead of json
         if response.status_code == 200:
-            return response.json()
+            response_text = response.text.replace('\n', '\\n')
+            return json.loads(response_text)
         else:
             return None
         
-        
-    # def get_available_port(self, ip, start, end):
-    #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #     for port in range(start, end):
-    #         try:
-    #             s.bind((ip, port))
-    #             return port
-    #         except OSError:
-    #             continue
-    #     return None
-    
     def request_available_port(self, start, end, ip="127.0.0.1"):
         url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
         response = requests.get(url)
@@ -97,7 +84,6 @@ class Ssh:
         response["port"] = "27017"
         logger.log(response)
 
-        
 
     def connect_apiserver(self, apiserver_port):
         # send the cmd to REST API server listening 8888
@@ -185,7 +171,7 @@ def launch_jrm_script():
         
         respons = ssh.request_available_port(10000, 19999)
         port = respons['port']
-        
+
         script, nodename = task.get_jrm_script(timestamp, port) # kubelet port starts from 10000; this is not good!
         nodenames.append(nodename)
 
@@ -195,7 +181,7 @@ def launch_jrm_script():
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
         # sleep 1 second
-        time.sleep(1)
+        time.sleep(5)
 
     exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
     tasks.append(exec_task)
