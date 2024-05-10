@@ -14,6 +14,6 @@ COPY FireWorks/gen_wf.py /fw/gen_wf.py
 COPY FireWorks/launch-jrms.sh /fw/launch-jrms.sh
 
 COPY create-ssh-connections/* /fw/create-ssh-connections/
-COPY create-ssh-connections/jrm-create-ssh-connections /fw/main/jrm-create-ssh-connections
+
 
 ENTRYPOINT [ "/fw/launch-jrms.sh" ]
