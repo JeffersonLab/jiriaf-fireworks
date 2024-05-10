@@ -6,8 +6,6 @@ import (
     "net/http"
     "os/exec"
     "strconv"
-    "strings"
-
     "github.com/gorilla/mux"
 )
 
@@ -31,13 +29,17 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
 
 func runCommand(w http.ResponseWriter, r *http.Request) {
     command := r.FormValue("command")
-    cmd := exec.Command("sh", "-c", command)
-    output, err := cmd.CombinedOutput()
+    cmd := exec.Command("bash", "-c", command)
+
+    // Start the command and don't wait for it to finish
+    err := cmd.Start()
     if err != nil {
         fmt.Fprintf(w, `{"error": "%s"}`, err)
         return
     }
-    fmt.Fprintf(w, `{"output": "%s"}`, strings.TrimSuffix(string(output), "\n"))
+
+    // Send a response immediately
+    fmt.Fprintf(w, `{"status": "Command started"}`)
 }
 
 func main() {
