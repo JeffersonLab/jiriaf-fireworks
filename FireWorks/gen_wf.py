@@ -83,6 +83,7 @@ class Ssh:
         response["remote"] = self.remote
         response["port"] = "27017"
         logger.log(response)
+        return response
 
 
     def connect_apiserver(self, apiserver_port):
@@ -96,6 +97,7 @@ class Ssh:
         response["remote"] = self.remote
         response["port"] = apiserver_port
         logger.log(response)
+        return response
     
     def connect_metrics_server(self, kubelet_port, nodename):
         # send the cmd to REST API server listening 8888
@@ -161,21 +163,23 @@ def launch_jrm_script():
     task = Task(slurm, jrm, ssh)
 
     # run db, apiserver ssh
-    ssh.connect_db()
-    ssh.connect_apiserver(jrm.apiserver_port)
+    ssh_db = ssh.connect_db()
+    ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
 
-    tasks, nodenames = [], []
+    tasks, nodenames, ssh_metrics, jrm_ports = [], [], [], []
     for _ in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
         
         respons = ssh.request_available_port(10000, 19999)
         port = respons['port']
+        jrm_ports.append(port)
 
         script, nodename = task.get_jrm_script(timestamp, port) # kubelet port starts from 10000; this is not good!
         nodenames.append(nodename)
 
-        ssh.connect_metrics_server(port, nodename)
+        cmd = ssh.connect_metrics_server(port, nodename)
+        ssh_metrics.append(cmd)
         print(f"Node {nodename} is running on port {port}")
 
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
@@ -187,7 +191,9 @@ def launch_jrm_script():
     tasks.append(exec_task)
 
     fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
+
     fw.spec["_category"] = jrm.site
+
     fw.spec["_queueadapter"] = {
         "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
@@ -196,6 +202,23 @@ def launch_jrm_script():
         "account": slurm.account,
         "constraint": slurm.nodetype
         }
+    
+    fw.spec["jrms_info"] = {
+        "nodenames": nodenames,
+        "jrm_ports": jrm_ports,
+        "apiserver_port": jrm.apiserver_port,
+        "kubeconfig": jrm.kubeconfig,
+        "control_plane_ip": jrm.control_plane_ip,
+        "vkubelet_pod_ip": jrm.vkubelet_pod_ip,
+        "site": jrm.site,
+        "image": jrm.image,
+    }
+
+    fw.spec["ssh_info"] = {
+        "ssh_metrics": ssh_metrics,
+        "ssh_db": ssh_db,
+        "ssh_apiserver": ssh_apiserver,
+    }
     
     # preempt has min walltime of 2 hours (can get stop after 2 hours)
     # debug_preempt has max walltime of 30 minutes (can get stop after 5 minutes)
