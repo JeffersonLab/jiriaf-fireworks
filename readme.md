@@ -105,6 +105,5 @@ On the local machine `JIRIAF2301`, we establish three SSH connections to `login0
 
 One the compute node, we establish SSH tunneling for K8s API server and JRM metrics.
 
-
-### Network Map 
+### Figure
 ![Network Map](markdown/jrm-network.png)
