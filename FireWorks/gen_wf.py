@@ -124,8 +124,8 @@ class Task:
     def get_jrm_script(self, node_id, kubelet_port):
         # translate walltime to seconds, eg 01:00:00 -> 3600
         jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
-        # jrm nees 5 mins to get start. substract 5*60 from jrm_walltime
-        jrm_walltime -= 300
+        # jrm nees 2 mins to get start. substract 5*60 from jrm_walltime
+        jrm_walltime -= 2 * 60
 
         nodename = f"{self.jrm.nodename}-{node_id}"
 
@@ -152,6 +152,11 @@ class Task:
             echo api-server: {self.jrm.apiserver_port}, kubelet: {kubelet_port}
 
             ./start.sh \$KUBECONFIG \$NODENAME \$VKUBELET_POD_IP \$KUBELET_PORT \$JIRIAF_WALLTIME \$JIRIAF_NODETYPE \$JIRIAF_SITE
+
+            # stop the processes after the walltime
+            sleep \$JIRIAF_WALLTIME
+            echo "Walltime is up. Stop the processes"
+            pkill -f "./start.sh"
         """)
 
         # Now, `script` contains the bash script with correct indentation.
