@@ -193,7 +193,7 @@ def launch_jrm_script():
 
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
-        # sleep 1 second
+        # sleep 5 second fo ssh to be ready
         time.sleep(5)
 
     exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
