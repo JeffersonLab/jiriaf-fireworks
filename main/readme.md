@@ -87,3 +87,23 @@ Once `JIRIAF_WALLTIME` expires, the JRM will be terminated. The commands for tra
 sleep $JIRIAF_WALLTIME
 echo "Walltime $JIRIAF_WALLTIME has ended. Terminating the processes."
 pkill -f "./start.sh"
+```
+
+## Network Map
+Ports used in the JRM deployment:
+- `27017`: MongoDB port
+- `8888`: SSH connection port
+- `API_SERVER_PORT`: K8s API server port
+- `10250`: JRM port
+
+SSH tunnelings:
+On the local machine `JIRIAF2301`, we establish three SSH connections to `login04` on Perlmutter when deploying JRMs:
+1. `27017:localhost:27017` for MongoDB
+2. `API_SERVER_PORT:localhost:API_SERVER_PORT` for K8s API server
+3. `*10250:localhost:KUBELET_PORT` for JRM metrics
+
+One the compute node, we establish SSH tunneling for K8s API server and JRM metrics.
+
+![Network Map](markdown/jrm-network.pdf)
+
+
