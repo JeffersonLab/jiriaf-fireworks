@@ -124,6 +124,9 @@ class Task:
     def get_jrm_script(self, node_id, kubelet_port):
         # translate walltime to seconds, eg 01:00:00 -> 3600
         jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
+        # jrm nees 5 mins to get start. substract 5*60 from jrm_walltime
+        jrm_walltime -= 300
+
         nodename = f"{self.jrm.nodename}-{node_id}"
 
         script = textwrap.dedent(f"""
