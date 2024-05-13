@@ -1,4 +1,4 @@
-# JRM Deployment Guide
+# JRM Deployment Using FireWorks
 
 This guide provides an overview of the JRM deployment process. Two main components are involved in the deployment: the FireWorks launchpad and the JRM deployment script. The FireWorks launchpad is a MongoDB database that stores the JRM workflows, while the JRM deployment script is a bash script that sets up and runs a Docker container to launch Slurm jobs for deploying JRMs.
 
