@@ -45,16 +45,17 @@ cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{kubelet_port}:localho
 
 ### Step 1: Create SSH Connections
 
-Run the `jrm-create-ssh-connections` binary. It is an HTTP server that listens on port `8888`. This creates SSH connections (db port, apiserver port, and jrm port) as shown in the prerequisites for the JRM deployment.
+Run the `jrm-create-ssh-connections` binary. It is an HTTP server that listens on port `8888`. This creates SSH connections (db port, apiserver port, and jrm port) as shown in the prerequisites for the JRM deployment. For more details, check the `create-ssh-connections/jrm-fw-create-ssh-connections.go` file.
 
 Here's what it does:
 
 1. Looks for available ports from `10000` to `19999` on localhost.
 2. Runs the commands from `FireWorks/gen_wf.py` to create SSH connections.
 
-**Note:** It considers listening ports as NOT available. So, ensure to delete ports that are not in use anymore when deleting JRMs. (One can identify the ports by checking the database and searching for the Completed fireworks.) -> Todo: Add a feature to delete the ports.
+**Note:** It considers listening ports as NOT available. So, ensure to delete ports that are not in use anymore when deleting JRMs.
 
-For more details, check the `create-ssh-connections/jrm-fw-create-ssh-connections.go` file.
+**To-Do:** Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
+
 
 ### Step 2: Configure Environment Variables
 The `main.sh` script is responsible for initializing the environment variables required to launch JRMs. It sets the following variables:
