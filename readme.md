@@ -93,15 +93,7 @@ pkill -f "./start.sh"
 ## Network Map
 The figure below serves as an example to illustrate all the ports and SSH tunnelings utilized in the JRM deployment process.
 
-### Ports used in the JRM deployment:
-- `27017`: MongoDB port
-- `8888`: SSH connection port
-- `API_SERVER_PORT`: K8s API server port
-- `10250`: JRM port for metrics server (Select from the available ports in the range of `10000-19999`)
-- `x`: Custom metrics ports (Select from the available ports in the range of `20000-49999`) (optional)
-
-
-### Releasing kubelet and custom metrics ports:
+### Releasing kubelet and custom metrics ports before deploying JRMs
 
 To release the used ports on local, we follow these steps:
 
@@ -111,6 +103,12 @@ To release the used ports on local, we follow these steps:
 
 3. Terminate the processes associated with these ports on your local machine.
 
+### Ports used in the JRM deployment:
+- `27017`: MongoDB port
+- `8888`: SSH connection port
+- `API_SERVER_PORT`: K8s API server port
+- `10250`: JRM port for metrics server (Select from the available ports in the range of `10000-19999`)
+- `x`: Custom metrics ports (Select from the available ports in the range of `20000-49999`) (optional)
 
 ### SSH tunnelings:
 On the local machine `JIRIAF2301`, we establish three essential SSH connections to `login04` on Perlmutter when deploying JRMs:
