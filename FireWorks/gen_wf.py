@@ -1,8 +1,8 @@
-from fireworks import Workflow, Firework, LaunchPad, ScriptTask, TemplateWriterTask
+from fireworks import Workflow, Firework, LaunchPad, ScriptTask
 import time
 from monty.serialization import loadfn
 import textwrap
-import socket, requests, json, logging
+import requests, json, logging
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 
@@ -146,6 +146,7 @@ class Task:
         2. Create and return SSH tunneling commands for the remote server, including apiserver port, kubelet port, and custom metrics ports.
         3. Run SSH tunneling commands on the local server, including kubelet port and custom metrics ports.
         """
+
         respons = self.ssh.request_available_port(10000, 19999)
         kubelet_port = respons['port']
         self.jrm_ports.append(kubelet_port)
@@ -215,6 +216,48 @@ class Task:
         # Now, `script` contains the bash script with correct indentation.
         return script
 
+class MangagePorts(Ssh):
+    # inherit from Ssh class
+    def __init__(self):
+        super().__init__()
+        self.ports = []
+        self.complete_fw_ids = []
+
+
+    def find_ports_from_lpad(self):
+        completed_fws = LPAD.get_fw_ids({"state": "COMPLETED"})
+        lost_fws = LPAD.detect_lostruns()[1]
+        print(f"completed_fws: {completed_fws}")
+        print(f"lost_fws: {lost_fws}")
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws+lost_fws]
+        for fw in fws:
+            if "ssh_info" in fw.spec:
+                ssh_info = fw.spec["ssh_info"]
+                if "ssh_metrics" in ssh_info:
+                    for entry in ssh_info["ssh_metrics"]:
+                        port = entry['port']
+                        self.ports.append(port)
+                        self.complete_fw_ids.append(fw.fw_id)
+                if "ssh_custom_metrics" in ssh_info:
+                    for entry in ssh_info["ssh_custom_metrics"]:
+                        port = entry['port']['mapped_port']
+                        self.ports.append(port)
+                        self.complete_fw_ids.append(fw.fw_id)
+
+        return self.ports
+    
+    def delete_ports(self):
+        # send the cmd to REST API server listening 8888 to delete the ports
+        for port, fw_id in zip(self.ports, self.complete_fw_ids):
+            cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
+            response = self.send_command(cmd)
+            response['cmd'] = cmd
+            response['port'] = port
+            response['complete_fw_id'] = fw_id
+            logger = Logger('delete_ports_logger')
+            logger.log(response)
+
+
 
 def launch_jrm_script():
     slurm = Slurm()
@@ -223,6 +266,13 @@ def launch_jrm_script():
     
     task = Task(slurm, jrm, ssh)
 
+    # check and delete the ports used by the completed and lost fireworks on local
+    manage_ports = MangagePorts()
+    manage_ports.find_ports_from_lpad()
+    manage_ports.delete_ports()
+    print(f"Delete ports: {manage_ports.ports}")
+    time.sleep(5)
+    
     # run db, apiserver ssh
     ssh_db = ssh.connect_db()
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)

@@ -93,13 +93,22 @@ pkill -f "./start.sh"
 ## Network Map
 The figure below serves as an example to illustrate all the ports and SSH tunnelings utilized in the JRM deployment process.
 
+### Releasing kubelet and custom metrics ports before deploying JRMs
+
+To release the used ports on local, we follow these steps:
+
+1. Refer to the `FireWorks` launchpad database. Identify the FireWorks (fws) that are in the `COMPLETED` or `RUNNING` states. Note that some fws might appear as `RUNNING` but are actually lost runs if they have been disconnected from the launchpad for a certain period (`default is 4 hours`).
+
+2. Collect the port numbers from the `spec.ssh_metrics.port` and `spec.ssh_custom_metrics.port.mapped_port` fields.
+
+3. Terminate the processes associated with these ports on your local machine.
+
 ### Ports used in the JRM deployment:
 - `27017`: MongoDB port
 - `8888`: SSH connection port
 - `API_SERVER_PORT`: K8s API server port
 - `10250`: JRM port for metrics server (Select from the available ports in the range of `10000-19999`)
 - `x`: Custom metrics ports (Select from the available ports in the range of `20000-49999`) (optional)
-
 
 ### SSH tunnelings:
 On the local machine `JIRIAF2301`, we establish three essential SSH connections to `login04` on Perlmutter when deploying JRMs:
@@ -118,5 +127,5 @@ One the compute node, we establish an SSH connections to the `login04` on Perlmu
 ![Network Map](markdown/jrm-network.png)
 
 # To-do
-- [ ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
+- [x ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
 - [ ] Automatically generate a prometheus configuration file with mapped ports of custom metrics. This will help in monitoring the custom metrics of JRMs.
