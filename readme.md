@@ -97,7 +97,7 @@ The figure below serves as an example to illustrate all the ports and SSH tunnel
 
 To release the used ports on local, we follow these steps:
 
-1. Refer to the `FireWorks` launchpad database. Identify the FireWorks (fws) that are in the `COMPLETED` or `RUNNING` states. Note that some fws might appear as `RUNNING` but are actually lost runs if they have been disconnected from the launchpad for a certain period (default is 4 hours).
+1. Refer to the `FireWorks` launchpad database. Identify the FireWorks (fws) that are in the `COMPLETED` or `RUNNING` states. Note that some fws might appear as `RUNNING` but are actually lost runs if they have been disconnected from the launchpad for a certain period (`default is 4 hours`).
 
 2. Collect the port numbers from the `spec.ssh_metrics.port` and `spec.ssh_custom_metrics.port.mapped_port` fields.
 
