@@ -43,6 +43,7 @@ class Jrm:
         self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
         self.site = self.node_config["jrm"]["site"]
         self.image = self.node_config["jrm"]["image"]
+        self.custom_metrics_ports = self.node_config["jrm"]["custom_metrics_ports"] if "custom_metrics_ports" in self.node_config["jrm"] else []
 
 class Ssh:
     def __init__(self, config_file="/fw/node-config.yaml"):
@@ -113,7 +114,19 @@ class Ssh:
         logger.log(response)
         return response
 
-
+    def connect_custom_metrics(self, custom_metrics_port, nodename):
+        # send the cmd to REST API server listening 8888
+        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{custom_metrics_port}:localhost:{custom_metrics_port} {self.remote}" 
+        response = self.send_command(cmd)
+        logger = Logger('connect_custom_metrics_logger')
+        # add cmd to response for record
+        response['cmd'] = cmd
+        response["remote_proxy"] = self.remote_proxy
+        response["remote"] = self.remote
+        response["port"] = custom_metrics_port
+        response["nodename"] = nodename
+        logger.log(response)
+        return response
 
 class Task:
     def __init__(self, slurm_instance, jrm_instance, ssh_instance):
@@ -121,7 +134,19 @@ class Task:
         self.jrm = jrm_instance
         self.ssh = ssh_instance
 
-    def get_jrm_script(self, node_id, kubelet_port):
+
+    def get_remote_ssh_cmds(self, kubelet_port, custom_metrics_ports):
+        commands = []
+        commands.append(f"ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.remote}")
+        commands.append(f"ssh -NfR {kubelet_port}:localhost:{kubelet_port} {self.ssh.remote}")
+
+        if self.jrm.custom_metrics_ports:
+            for port in custom_metrics_ports:
+                commands.append(f"ssh -NfR {port}:localhost:{port} {self.ssh.remote}")
+
+        return "; ".join(commands)
+
+    def get_jrm_script(self, node_id, kubelet_port, ssh_cmds):
         # translate walltime to seconds, eg 01:00:00 -> 3600
         jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
         # jrm need 1 min to warm up. substract 1*60 from jrm_walltime.
@@ -130,7 +155,7 @@ class Task:
         nodename = f"{self.jrm.nodename}-{node_id}"
 
         script = textwrap.dedent(f"""
-            #!/bin/bash
+            #!/bin/bash -l
 
             export NODENAME={nodename}
             export KUBECONFIG={self.jrm.kubeconfig}
@@ -143,8 +168,7 @@ class Task:
             echo JRM: \$NODENAME is running on \$HOSTNAME
             echo Walltime: \$JIRIAF_WALLTIME, nodetype: \$JIRIAF_NODETYPE, site: \$JIRIAF_SITE
 
-            ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.remote}
-            ssh -NfR {kubelet_port}:localhost:{kubelet_port} {self.ssh.remote}
+            {ssh_cmds}
 
             shifter --image={self.jrm.image} -- /bin/bash -c "cp -r /vk-cmd `pwd`/{nodename}"
             cd `pwd`/{nodename}
@@ -175,24 +199,34 @@ def launch_jrm_script():
     ssh_db = ssh.connect_db()
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
 
-    tasks, nodenames, ssh_metrics, jrm_ports = [], [], [], []
+    tasks, nodenames, ssh_metrics, jrm_ports, custom_metrics_ports, ssh_custom_metrics = [], [], [], [], [], []
     for _ in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
         
         respons = ssh.request_available_port(10000, 19999)
-        port = respons['port']
-        jrm_ports.append(port)
+        kubelet_port = respons['port']
+        jrm_ports.append(kubelet_port)
 
-        script, nodename = task.get_jrm_script(timestamp, port) # kubelet port starts from 10000; this is not good!
-        nodenames.append(nodename)
+        remote_ssh_cmds = task.get_remote_ssh_cmds(kubelet_port, jrm.custom_metrics_ports)
+        custom_metrics_ports.append(jrm.custom_metrics_ports)
 
-        cmd = ssh.connect_metrics_server(port, nodename)
-        ssh_metrics.append(cmd)
-        print(f"Node {nodename} is running on port {port}")
-
+        script, nodename = task.get_jrm_script(timestamp, kubelet_port, remote_ssh_cmds)
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
+        nodenames.append(nodename)
+
+        # Below is the set up ssh from local to remote
+        cmd = ssh.connect_metrics_server(kubelet_port, nodename)
+        ssh_metrics.append(cmd)
+        print(f"Node {nodename} is running on port {kubelet_port}")
+        
+        print(f"custom_metrics_ports: {jrm.custom_metrics_ports}")
+        for custom_metrics_port in jrm.custom_metrics_ports:
+            cmd = ssh.connect_custom_metrics(custom_metrics_port, nodename)
+            ssh_custom_metrics.append(cmd)
+            print(f"Node {nodename} has exported custom metrics on port {custom_metrics_port}")
+            
         # sleep 5 second fo ssh to be ready
         time.sleep(5)
 
@@ -221,6 +255,7 @@ def launch_jrm_script():
         "vkubelet_pod_ip": jrm.vkubelet_pod_ip,
         "site": jrm.site,
         "image": jrm.image,
+        "custom_metrics_ports": jrm.custom_metrics_ports
     }
 
     fw.spec["ssh_info"] = {
