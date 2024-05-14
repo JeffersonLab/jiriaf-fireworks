@@ -96,7 +96,7 @@ class Ssh:
         response['cmd'] = cmd
         response["remote_proxy"] = self.remote_proxy
         response["remote"] = self.remote
-        response["port"] = apiserver_port
+        response["port"] = str(apiserver_port)
         logger.log(response)
         return response
     
@@ -109,7 +109,7 @@ class Ssh:
         response['cmd'] = cmd
         response["remote_proxy"] = self.remote_proxy
         response["remote"] = self.remote
-        response["port"] = kubelet_port
+        response["port"] = str(kubelet_port)
         response["nodename"] = nodename
         logger.log(response)
         return response
@@ -123,7 +123,7 @@ class Ssh:
         response['cmd'] = cmd
         response["remote_proxy"] = self.remote_proxy
         response["remote"] = self.remote
-        response["port"] = {"mapped_port": mapped_port, "custom_metrics_port": custom_metrics_port}
+        response["port"] = {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}
         response["nodename"] = nodename
         logger.log(response)
         return response
@@ -164,7 +164,7 @@ class Task:
             # For each custom metrics port, create an SSH reverse tunneling command
             for port in self.jrm.custom_metrics_ports:
                 # Request an available port in the range 20000-40000
-                response = self.ssh.request_available_port(20000, 40000)
+                response = self.ssh.request_available_port(20000, 49999)
                 mapped_port = response['port']
 
                 commands.append(f"ssh -NfR {mapped_port}:localhost:{port} {self.ssh.remote}")
