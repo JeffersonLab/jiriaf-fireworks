@@ -1,8 +1,8 @@
-from fireworks import Workflow, Firework, LaunchPad, ScriptTask, TemplateWriterTask
+from fireworks import Workflow, Firework, LaunchPad, ScriptTask
 import time
 from monty.serialization import loadfn
 import textwrap
-import socket, requests, json, logging
+import requests, json, logging
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 
@@ -147,13 +147,6 @@ class Task:
         3. Run SSH tunneling commands on the local server, including kubelet port and custom metrics ports.
         """
 
-        # delete those ports that are used by completed firework
-        manage_ports = MangagePorts()
-        manage_ports.find_ports_from_lpad()
-        manage_ports.delete_ports()
-        print(f"Delete ports: {manage_ports.ports}")
-        time.sleep(5)
-
         respons = self.ssh.request_available_port(10000, 19999)
         kubelet_port = respons['port']
         self.jrm_ports.append(kubelet_port)
@@ -233,7 +226,10 @@ class MangagePorts(Ssh):
 
     def find_ports_from_lpad(self):
         completed_fws = LPAD.get_fw_ids({"state": "COMPLETED"})
-        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws]
+        lost_fws = LPAD.detect_lostruns()[1]
+        print(f"completed_fws: {completed_fws}")
+        print(f"lost_fws: {lost_fws}")
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws+lost_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
                 ssh_info = fw.spec["ssh_info"]
@@ -270,6 +266,13 @@ def launch_jrm_script():
     
     task = Task(slurm, jrm, ssh)
 
+    # check and delete the ports used by the completed and lost fireworks on local
+    manage_ports = MangagePorts()
+    manage_ports.find_ports_from_lpad()
+    manage_ports.delete_ports()
+    print(f"Delete ports: {manage_ports.ports}")
+    time.sleep(5)
+    
     # run db, apiserver ssh
     ssh_db = ssh.connect_db()
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
