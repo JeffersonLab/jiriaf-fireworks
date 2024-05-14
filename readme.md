@@ -49,12 +49,10 @@ Run the `jrm-create-ssh-connections` binary. It is an HTTP server that listens o
 
 Here's what it does:
 
-1. Looks for available ports from `10000` to `19999` on localhost.
+1. Looks for available ports from the assigned port range and IP address.
 2. Runs the commands from `FireWorks/gen_wf.py` to create SSH connections.
 
 **Note:** It considers listening ports as NOT available. So, ensure to delete ports that are not in use anymore when deleting JRMs.
-
-**To-Do:** Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
 
 
 ### Step 2: Configure Environment Variables
@@ -66,6 +64,8 @@ The `main.sh` script is responsible for initializing the environment variables r
 - `nodename`: This is the name assigned to the node.
 - `site`: This is the site name.
 - `account`: This is the account number used for allocation at NERSC.
+- `qos`: This is the queue of service. Refer to compute sites for more details.
+- `custom_metrics_ports`: This is the port used for custom metrics. It can be multiple ports separated by space. For example, `8080 8081`.
 
 The script also creates a directory at `$HOME/jrm-launch/logs` to store logs. The path to this directory is saved in the `logs` environment variable.
 
@@ -98,12 +98,18 @@ Ports used in the JRM deployment:
 - `10250`: JRM port
 
 SSH tunnelings:
-On the local machine `JIRIAF2301`, we establish three SSH connections to `login04` on Perlmutter when deploying JRMs:
+On the local machine `JIRIAF2301`, we establish three essential SSH connections to `login04` on Perlmutter when deploying JRMs:
 1. `27017:localhost:27017` for MongoDB
 2. `API_SERVER_PORT:localhost:API_SERVER_PORT` for K8s API server
 3. `*10250:localhost:KUBELET_PORT` for JRM metrics
+
+If there is `custom_metrics_ports` set in the `main.sh` script, we establish SSH tunneling for custom metrics ports on the local. `*x:localhost:x` means that the port `x` has to be available on the local machine.
 
 One the compute node, we establish SSH tunneling for K8s API server and JRM metrics.
 
 ### Figure
 ![Network Map](markdown/jrm-network.png)
+
+# To-do
+- [ ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
+- [ ] Automatically generate a prometheus configuration file with mapped ports of custom metrics. This will help in monitoring the custom metrics of JRMs.
