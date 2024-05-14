@@ -118,5 +118,5 @@ One the compute node, we establish an SSH connections to the `login04` on Perlmu
 ![Network Map](markdown/jrm-network.png)
 
 # To-do
-- [ ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
+- [x ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
 - [ ] Automatically generate a prometheus configuration file with mapped ports of custom metrics. This will help in monitoring the custom metrics of JRMs.
