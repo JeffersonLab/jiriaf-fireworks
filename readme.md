@@ -93,15 +93,15 @@ pkill -f "./start.sh"
 ## Network Map
 The figure below serves as an example to illustrate all the ports and SSH tunnelings utilized in the JRM deployment process.
 
-### Releasing kubelet and custom metrics ports before deploying JRMs
+### Release Ports and Remove nodes in K8s Cluster on local machine
 
-To release the used ports on local, we follow these steps:
+To release the used ports and remove the nodes in K8s cluster on local, we follow these steps:
 
 1. Refer to the `FireWorks` launchpad database. Identify the FireWorks (fws) that are in the `COMPLETED` or `RUNNING` states. Note that some fws might appear as `RUNNING` but are actually lost runs if they have been disconnected from the launchpad for a certain period (`default is 4 hours`).
 
 2. Collect the port numbers from the `spec.ssh_metrics.port` and `spec.ssh_custom_metrics.port.mapped_port` fields.
 
-3. Terminate the processes associated with these ports on your local machine.
+3. Send a `POST` request to the `jrm-delete-ssh-connections` endpoint. This will delete the ports and remove the nodes in the K8s cluster.
 
 ### Ports used in the JRM deployment:
 - `27017`: MongoDB port
