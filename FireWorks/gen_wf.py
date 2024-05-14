@@ -116,7 +116,7 @@ class Ssh:
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{custom_metrics_port} {self.remote}" 
+        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_custom_metrics_logger')
         # add cmd to response for record
@@ -140,6 +140,12 @@ class Task:
         self.ssh_custom_metrics_cmds = []
 
     def get_remote_ssh_cmds(self, nodename):
+        """
+        This function do three things:
+        1. Request available port for kubelet and custom metrics ports
+        2. Create and return SSH tunneling commands for the remote server, including apiserver port, kubelet port, and custom metrics ports.
+        3. Run SSH tunneling commands on the local server, including kubelet port and custom metrics ports.
+        """
         respons = self.ssh.request_available_port(10000, 19999)
         kubelet_port = respons['port']
         self.jrm_ports.append(kubelet_port)
