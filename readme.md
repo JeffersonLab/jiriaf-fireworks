@@ -91,6 +91,8 @@ pkill -f "./start.sh"
 ```
 
 ## Network Map
+The figure below serves as an example to illustrate all the ports and SSH tunnelings utilized in the JRM deployment process.
+
 ### Ports used in the JRM deployment:
 - `27017`: MongoDB port
 - `8888`: SSH connection port
@@ -103,14 +105,14 @@ pkill -f "./start.sh"
 On the local machine `JIRIAF2301`, we establish three essential SSH connections to `login04` on Perlmutter when deploying JRMs:
 1. `27017:localhost:27017` for MongoDB
 2. `API_SERVER_PORT:localhost:API_SERVER_PORT` for K8s API server
-3. `*10250:localhost:KUBELET_PORT` for JRM metrics
+3. `*10250:localhost:10250` for JRM metrics
 4. `*x:localhost:x` for custom metrics (optional)
 
 
 One the compute node, we establish an SSH connections to the `login04` on Perlmutter:
 1. `API_SERVER_PORT:localhost:API_SERVER_PORT` for K8s API server
-2. `*10250:localhost:KUBELET_PORT` for JRM metrics
-3. `*x:localhost:x` for custom metrics (optional)
+2. `*10250:localhost:10250` for JRM metrics
+3. `x:localhost:8080` for custom metrics. `8080` is the port where the custom metrics are exposed. (optional)
 
 ### Figure
 ![Network Map](markdown/jrm-network.png)
