@@ -101,6 +101,17 @@ The figure below serves as an example to illustrate all the ports and SSH tunnel
 - `x`: Custom metrics ports (Select from the available ports in the range of `20000-49999`) (optional)
 
 
+### Releasing kubelet and custom metrics ports:
+
+To release the used ports on local, we follow these steps:
+
+1. Refer to the `FireWorks` launchpad database. Identify the FireWorks (fws) that are in the `COMPLETED` or `RUNNING` states. Note that some fws might appear as `RUNNING` but are actually lost runs if they have been disconnected from the launchpad for a certain period (default is 4 hours).
+
+2. Collect the port numbers from the `spec.ssh_metrics.port` and `spec.ssh_custom_metrics.port.mapped_port` fields.
+
+3. Terminate the processes associated with these ports on your local machine.
+
+
 ### SSH tunnelings:
 On the local machine `JIRIAF2301`, we establish three essential SSH connections to `login04` on Perlmutter when deploying JRMs:
 1. `ssh -NfR 27017:localhost:27017 login04` for MongoDB
