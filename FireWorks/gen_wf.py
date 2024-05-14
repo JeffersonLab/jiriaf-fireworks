@@ -225,9 +225,9 @@ class MangagePorts(Ssh):
         self.to_delete_knodes = []
 
 
-    def find_ports_from_lpad(self):
+    def find_ports_from_lpad(self, lost_runs_time_limit=4 * 60 * 60):
         completed_fws = LPAD.get_fw_ids({"state": "COMPLETED"})
-        lost_fws = LPAD.detect_lostruns()[1]
+        lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
         print(f"Completed fw_ids: {completed_fws}")
         print(f"Lost fw_ids: {lost_fws}")
         fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws+lost_fws]
@@ -280,9 +280,9 @@ def launch_jrm_script():
     # check and delete the ports used by the completed and lost fireworks on local
     manage_ports = MangagePorts()
     manage_ports.find_ports_from_lpad()
-    print(f"Find ports: {manage_ports.ports}")
+    print(f"Find ports: {manage_ports.to_delete_ports}")
     manage_ports.delete_ports()
-    print(f"Delete ports: {manage_ports.ports}")
+    print(f"Delete ports: {manage_ports.to_delete_ports}")
     manage_ports.delete_nodes()
     print(f"Delete nodes: {manage_ports.to_delete_knodes}")
     time.sleep(5)
