@@ -7,7 +7,7 @@ export nodename=vk-nersc-test
 export site=perlmutter
 export account=m3792 # this is the account number for the allocation at NERSC
 
-export custom_metrics_ports="8080"
+export custom_metrics_ports='8080 8081'
 
 mkdir -p $HOME/jrm-launch/logs
 export logs="$HOME/jrm-launch/logs"
@@ -15,6 +15,5 @@ export logs="$HOME/jrm-launch/logs"
 docker run -it --rm --name=jrm-fw -v $logs:/fw/logs \
  -e nnodes=$nnodes -e nodetype=$nodetype \
   -e walltime=$walltime -e nodename=$nodename \
-   -e site=$site -e account=$account -e custom_metrics_ports=$custom_metrics_ports jlabtsai/jrm-fw:latest $@
-
-
+   -e site=$site -e account=$account -e "custom_metrics_ports=$custom_metrics_ports" \
+   jlabtsai/jrm-fw:latest $@
