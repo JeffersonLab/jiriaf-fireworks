@@ -40,7 +40,7 @@ slurm:
     nnodes: ${nnodes}
     nodetype: ${nodetype}
     walltime: ${walltime}
-    qos: debug
+    qos: ${qos}
     account: ${account} #m4637 - jiriaf or m3792 - nersc
 
 jrm:
