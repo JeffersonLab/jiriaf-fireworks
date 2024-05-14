@@ -234,19 +234,6 @@ def launch_jrm_script():
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
         nodenames.append(nodename)
 
-        # # Below is the set up ssh from local to remote
-        # cmd = ssh.connect_metrics_server(kubelet_port, nodename)
-        # task.ssh_metrics_cmds.append(cmd)
-        # print(f"Node {nodename} is running on port {kubelet_port}")
-    
-        # print(f"Mapped custom metrics ports: {dict_mapped_custom_metrics_ports}")
-        # if dict_mapped_custom_metrics_ports:
-        #     for mapped_port, custom_metrics_port in dict_mapped_custom_metrics_ports.items():
-        #         cmd = ssh.connect_custom_metrics(mapped_port, custom_metrics_port, nodename)
-        #         task.ssh_custom_metrics_cmds.append(cmd)
-        #         print(f"Node {nodename} is exposing custom metrics port {custom_metrics_port} on port {mapped_port}")
-    
-
     exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
     tasks.append(exec_task)
 
