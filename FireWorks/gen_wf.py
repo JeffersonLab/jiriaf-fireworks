@@ -220,15 +220,16 @@ class MangagePorts(Ssh):
     # inherit from Ssh class
     def __init__(self):
         super().__init__()
-        self.ports = []
-        self.complete_fw_ids = []
+        self.to_delete_ports = []
+        self.to_delete_fw_ids = []
+        self.to_delete_knodes = []
 
 
     def find_ports_from_lpad(self):
         completed_fws = LPAD.get_fw_ids({"state": "COMPLETED"})
         lost_fws = LPAD.detect_lostruns()[1]
-        print(f"completed_fws: {completed_fws}")
-        print(f"lost_fws: {lost_fws}")
+        print(f"Completed fw_ids: {completed_fws}")
+        print(f"Lost fw_ids: {lost_fws}")
         fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws+lost_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
@@ -236,19 +237,21 @@ class MangagePorts(Ssh):
                 if "ssh_metrics" in ssh_info:
                     for entry in ssh_info["ssh_metrics"]:
                         port = entry['port']
-                        self.ports.append(port)
-                        self.complete_fw_ids.append(fw.fw_id)
+                        self.to_delete_ports.append(port)
+                        self.to_delete_fw_ids.append(fw.fw_id)
                 if "ssh_custom_metrics" in ssh_info:
                     for entry in ssh_info["ssh_custom_metrics"]:
                         port = entry['port']['mapped_port']
-                        self.ports.append(port)
-                        self.complete_fw_ids.append(fw.fw_id)
+                        self.to_delete_ports.append(port)
+                        self.to_delete_fw_ids.append(fw.fw_id)
 
-        return self.ports
+            self.to_delete_knodes.extend(fw.spec["jrms_info"]["nodenames"])
+
+        return self.to_delete_ports
     
     def delete_ports(self):
         # send the cmd to REST API server listening 8888 to delete the ports
-        for port, fw_id in zip(self.ports, self.complete_fw_ids):
+        for port, fw_id in zip(self.to_delete_ports, self.to_delete_fw_ids):
             cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
             response = self.send_command(cmd)
             response['cmd'] = cmd
@@ -257,6 +260,14 @@ class MangagePorts(Ssh):
             logger = Logger('delete_ports_logger')
             logger.log(response)
 
+    def delete_nodes(self):
+        # send the cmd to REST API server listening 8888 to delete the nodes
+        cmd = f"kubectl delete nodes {' '.join(self.to_delete_knodes)}"
+        response = self.send_command(cmd)
+        response['cmd'] = cmd
+        response['nodes'] = self.to_delete_knodes
+        logger = Logger('delete_nodes_logger')
+        logger.log(response)
 
 
 def launch_jrm_script():
@@ -269,8 +280,11 @@ def launch_jrm_script():
     # check and delete the ports used by the completed and lost fireworks on local
     manage_ports = MangagePorts()
     manage_ports.find_ports_from_lpad()
+    print(f"Find ports: {manage_ports.ports}")
     manage_ports.delete_ports()
     print(f"Delete ports: {manage_ports.ports}")
+    manage_ports.delete_nodes()
+    print(f"Delete nodes: {manage_ports.to_delete_knodes}")
     time.sleep(5)
     
     # run db, apiserver ssh
