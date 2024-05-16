@@ -25,6 +25,18 @@ if [ -z "$site" ]; then
     echo "The site variable is not set."
     exit 1
 fi
+if [ -z "$ssh_key" ]; then
+    echo "The ssh_key variable is not set."
+    exit 1
+fi
+if [ -z "$ssh_remote" ]; then
+    echo "The ssh_remote variable is not set."
+    exit 1
+fi
+if [ -z "$ssh_remote_proxy" ]; then
+    echo "The ssh_remote_proxy variable is not set."
+    exit 1
+fi
 
 # Convert the space-separated string into a YAML list if it's set and not an empty string
 if [ -n "$custom_metrics_ports" ] && [ "$custom_metrics_ports" != "" ]; then
@@ -56,8 +68,9 @@ jrm:
     $custom_metrics_ports_yaml
 
 ssh:
-    remote_proxy: perlmutter
-    remote: jlabtsai@128.55.64.13
+    remote_proxy: ${ssh_remote_proxy}
+    remote: ${ssh_remote}
+    ssh_key: ${ssh_key}
 EOF
 
 cp /fw/node-config.yaml /fw/logs/${nodename}_node-config.yaml
