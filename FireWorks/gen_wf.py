@@ -52,6 +52,7 @@ class Ssh:
             raise ValueError("node-config.yaml is empty")
         self.remote = self.node_config["ssh"]["remote"]
         self.remote_proxy = self.node_config["ssh"]["remote_proxy"]
+        self.ssh_key = self.node_config["ssh"]["ssh_key"]
 
     def send_command(self, command):
         url = "http://172.17.0.1:8888/run"
@@ -74,7 +75,7 @@ class Ssh:
     
     def connect_db(self):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
+        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
         response = self.send_command(cmd)
         # write response to log
         logger = Logger('connect_db_logger')
@@ -89,7 +90,7 @@ class Ssh:
 
     def connect_apiserver(self, apiserver_port):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
+        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_apiserver_logger')
         # add cmd to response for record
@@ -102,7 +103,7 @@ class Ssh:
     
     def connect_metrics_server(self, kubelet_port, nodename):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
+        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_metrics_server_logger')
         # add cmd to response for record
@@ -116,7 +117,7 @@ class Ssh:
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
+        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_custom_metrics_logger')
         # add cmd to response for record
@@ -226,11 +227,11 @@ class MangagePorts(Ssh):
 
 
     def find_ports_from_lpad(self, lost_runs_time_limit=4 * 60 * 60):
-        completed_fws = LPAD.get_fw_ids({"state": "COMPLETED"})
+        completed_or_defused_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "DEFUSED"]}})
         lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
-        print(f"Completed fw_ids: {completed_fws}")
+        print(f"Completed or defused fw_ids: {completed_or_defused_fws}")
         print(f"Lost fw_ids: {lost_fws}")
-        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_fws+lost_fws]
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_defused_fws+lost_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
                 ssh_info = fw.spec["ssh_info"]
@@ -252,6 +253,7 @@ class MangagePorts(Ssh):
     def delete_ports(self):
         # send the cmd to REST API server listening 8888 to delete the ports
         for port, fw_id in zip(self.to_delete_ports, self.to_delete_fw_ids):
+            print(f"Delete port {port} used by fw_id {fw_id}")
             cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
             response = self.send_command(cmd)
             response['cmd'] = cmd
@@ -280,14 +282,15 @@ def launch_jrm_script():
     # check and delete the ports used by the completed and lost fireworks on local
     manage_ports = MangagePorts()
     manage_ports.find_ports_from_lpad()
-    print(f"Find ports: {manage_ports.to_delete_ports}")
+    print(f"Found used ports: {manage_ports.to_delete_ports}")
     manage_ports.delete_ports()
-    print(f"Delete ports: {manage_ports.to_delete_ports}")
     manage_ports.delete_nodes()
     print(f"Delete nodes: {manage_ports.to_delete_knodes}")
     time.sleep(5)
     
     # run db, apiserver ssh
+    print("Connect to db, apiserver")
+    print(f"ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
     ssh_db = ssh.connect_db()
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
 
