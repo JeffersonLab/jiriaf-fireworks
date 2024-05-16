@@ -12,7 +12,7 @@ export qos="debug"
 
 export ssh_key="$HOME/.ssh/nersc"
 export ssh_remote="jlabtsai@128.55.64.13"
-export ssh_remote_proxy="perlmutter"
+export ssh_remote_proxy="perlmutter" # To use this, make sure you have the ssh config setup
 
 mkdir -p $HOME/jrm-launch/logs
 export logs="$HOME/jrm-launch/logs"
