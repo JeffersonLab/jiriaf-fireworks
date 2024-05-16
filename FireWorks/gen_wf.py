@@ -74,7 +74,7 @@ class Ssh:
     
     def connect_db(self):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
+        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
         response = self.send_command(cmd)
         # write response to log
         logger = Logger('connect_db_logger')
@@ -89,7 +89,7 @@ class Ssh:
 
     def connect_apiserver(self, apiserver_port):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
+        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_apiserver_logger')
         # add cmd to response for record
@@ -102,7 +102,7 @@ class Ssh:
     
     def connect_metrics_server(self, kubelet_port, nodename):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
+        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_metrics_server_logger')
         # add cmd to response for record
@@ -116,7 +116,7 @@ class Ssh:
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i ~/.ssh/nersc -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
+        cmd = f"ssh -i /home/tsai/.ssh/nersc -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
         response = self.send_command(cmd)
         logger = Logger('connect_custom_metrics_logger')
         # add cmd to response for record
