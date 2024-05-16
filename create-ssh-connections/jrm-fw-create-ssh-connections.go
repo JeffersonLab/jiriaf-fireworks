@@ -4,8 +4,11 @@ import (
     "fmt"
     "net"
     "net/http"
+    "os"
     "os/exec"
+    "os/signal"
     "strconv"
+    "syscall"
     "github.com/gorilla/mux"
 )
 
@@ -41,10 +44,22 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     // Send a response immediately
     fmt.Fprintf(w, `{"status": "Command started"}`)
 }
-
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
     r.HandleFunc("/run", runCommand).Methods("POST")
+
+    // Create a channel to receive OS signals
+    c := make(chan os.Signal, 1)
+    // Notify the channel for SIGINT signals
+    signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+    // Run a goroutine that waits for the SIGINT signal
+    go func() {
+        <-c
+        fmt.Println("\nReceived an interrupt, stopping services...")
+        os.Exit(0)
+    }()
+
     http.ListenAndServe(":8888", r)
 }
