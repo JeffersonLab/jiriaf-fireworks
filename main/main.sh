@@ -8,7 +8,11 @@ export site=perlmutter
 export account=m3792 # this is the account number for the allocation at NERSC
 export qos="debug"
 
-export custom_metrics_ports='8080 8081'
+# export custom_metrics_ports='8080 8081'
+
+export ssh_key="$HOME/.ssh/nersc"
+export ssh_remote="jlabtsai@128.55.64.13"
+export ssh_remote_proxy="perlmutter"
 
 mkdir -p $HOME/jrm-launch/logs
 export logs="$HOME/jrm-launch/logs"
@@ -18,4 +22,5 @@ docker run -it --rm --name=jrm-fw -v $logs:/fw/logs \
   -e walltime=$walltime -e nodename=$nodename \
   -e qos=$qos \
    -e site=$site -e account=$account -e "custom_metrics_ports=$custom_metrics_ports" \
+   -e ssh_key=$ssh_key -e ssh_remote=$ssh_remote -e "ssh_remote_proxy=$ssh_remote_proxy" \
    jlabtsai/jrm-fw:latest $@
