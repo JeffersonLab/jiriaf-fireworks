@@ -25,6 +25,18 @@ if [ -z "$site" ]; then
     echo "The site variable is not set."
     exit 1
 fi
+if [ -z "$control_plane_ip" ]; then
+    echo "The control_plane_ip variable is not set."
+    exit 1
+fi
+if [ -z "$apiserver_port" ]; then
+    echo "The apiserver_port variable is not set."
+    exit 1
+fi
+if [ -z "$kubeconfig" ]; then
+    echo "The kubeconfig variable is not set."
+    exit 1
+fi
 if [ -z "$ssh_key" ]; then
     echo "The ssh_key variable is not set."
     exit 1
@@ -59,9 +71,9 @@ jrm:
     nodename: ${nodename}
     site: ${site}
     
-    control_plane_ip: jiriaf2301
-    apiserver_port: 35679
-    kubeconfig: /global/homes/j/jlabtsai/config/kubeconfig
+    control_plane_ip: ${control_plane_ip}  #jiriaf2301
+    apiserver_port: ${apiserver_port} #35679
+    kubeconfig:  ${kubeconfig} #/global/homes/j/jlabtsai/config/kubeconfig
     vkubelet_pod_ip: "172.17.0.1"
     image: docker:jlabtsai/vk-cmd:main
 
