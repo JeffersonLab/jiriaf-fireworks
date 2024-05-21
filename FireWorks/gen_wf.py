@@ -36,10 +36,20 @@ class Jrm:
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
+        
         self.control_plane_ip = self.node_config["jrm"]["control_plane_ip"]
+        if not self.control_plane_ip:
+            self.control_plane_ip = "jiriaf2301"
+
         self.apiserver_port = self.node_config["jrm"]["apiserver_port"]
-        self.nodename = self.node_config["jrm"]["nodename"]
+        if not self.apiserver_port:
+            self.apiserver_port = "35679"
+
         self.kubeconfig = self.node_config["jrm"]["kubeconfig"]
+        if not self.kubeconfig:
+            self.kubeconfig = "/global/homes/j/jlabtsai/config/kubeconfig"
+
+        self.nodename = self.node_config["jrm"]["nodename"]
         self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
         self.site = self.node_config["jrm"]["site"]
         self.image = self.node_config["jrm"]["image"]
@@ -226,7 +236,7 @@ class MangagePorts(Ssh):
         self.to_delete_knodes = []
 
 
-    def find_ports_from_lpad(self, lost_runs_time_limit=4 * 60 * 60):
+    def find_ports_from_lpad(self, lost_runs_time_limit=5 * 60):
         completed_or_defused_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "DEFUSED"]}})
         lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
         print(f"Completed or defused fw_ids: {completed_or_defused_fws}")
