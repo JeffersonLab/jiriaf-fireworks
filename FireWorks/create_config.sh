@@ -73,7 +73,7 @@ jrm:
     
     control_plane_ip: ${control_plane_ip}  #jiriaf2301
     apiserver_port: ${apiserver_port} #35679
-    kubeconfig:  ${kubeconfig} #/global/homes/j/jlabtsai/config/kubeconfig
+    kubeconfig:  ${kubeconfig}
     vkubelet_pod_ip: "172.17.0.1"
     image: docker:jlabtsai/vk-cmd:main
 
