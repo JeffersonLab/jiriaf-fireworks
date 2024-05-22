@@ -3,6 +3,7 @@ import time
 from monty.serialization import loadfn
 import textwrap
 import requests, json, logging
+import argparse
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 
@@ -64,7 +65,8 @@ class Ssh:
         self.remote_proxy = self.node_config["ssh"]["remote_proxy"]
         self.ssh_key = self.node_config["ssh"]["ssh_key"]
 
-    def send_command(self, command):
+    @staticmethod
+    def send_command(command):
         url = "http://172.17.0.1:8888/run"
         data = {'command': command}
         response = requests.post(url, data=data)  # Use data instead of json
@@ -86,7 +88,7 @@ class Ssh:
     def connect_db(self):
         # send the cmd to REST API server listening 8888
         cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
-        response = self.send_command(cmd)
+        response = Ssh.send_command(cmd)
         # write response to log
         logger = Logger('connect_db_logger')
         # add cmd to response for record
@@ -101,7 +103,7 @@ class Ssh:
     def connect_apiserver(self, apiserver_port):
         # send the cmd to REST API server listening 8888
         cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
-        response = self.send_command(cmd)
+        response = Ssh.send_command(cmd)
         logger = Logger('connect_apiserver_logger')
         # add cmd to response for record
         response['cmd'] = cmd
@@ -114,7 +116,7 @@ class Ssh:
     def connect_metrics_server(self, kubelet_port, nodename):
         # send the cmd to REST API server listening 8888
         cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{kubelet_port}:localhost:{kubelet_port} {self.remote}" 
-        response = self.send_command(cmd)
+        response = Ssh.send_command(cmd)
         logger = Logger('connect_metrics_server_logger')
         # add cmd to response for record
         response['cmd'] = cmd
@@ -128,7 +130,7 @@ class Ssh:
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         # send the cmd to REST API server listening 8888
         cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{mapped_port}:localhost:{mapped_port} {self.remote}" 
-        response = self.send_command(cmd)
+        response = Ssh.send_command(cmd)
         logger = Logger('connect_custom_metrics_logger')
         # add cmd to response for record
         response['cmd'] = cmd
@@ -227,7 +229,7 @@ class Task:
         # Now, `script` contains the bash script with correct indentation.
         return script
 
-class MangagePorts(Ssh):
+class MangagePorts:
     # inherit from Ssh class
     def __init__(self):
         super().__init__()
@@ -237,11 +239,11 @@ class MangagePorts(Ssh):
 
 
     def find_ports_from_lpad(self, lost_runs_time_limit=5 * 60):
-        completed_or_defused_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "DEFUSED"]}})
+        completed_or_fizzled_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "FIZZLED"]}})
         lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
-        print(f"Completed or defused fw_ids: {completed_or_defused_fws}")
+        print(f"Completed or Fizzled fw_ids: {completed_or_fizzled_fws}")
         print(f"Lost fw_ids: {lost_fws}")
-        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_defused_fws+lost_fws]
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_fizzled_fws+lost_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
                 ssh_info = fw.spec["ssh_info"]
@@ -259,13 +261,32 @@ class MangagePorts(Ssh):
             self.to_delete_knodes.extend(fw.spec["jrms_info"]["nodenames"])
 
         return self.to_delete_ports
+
+    def find_ports_from_fw_id(self, fw_id):
+        fw = LPAD.get_fw_by_id(int(fw_id))
+        if "ssh_info" in fw.spec:
+            ssh_info = fw.spec["ssh_info"]
+            if "ssh_metrics" in ssh_info:
+                for entry in ssh_info["ssh_metrics"]:
+                    port = entry['port']
+                    self.to_delete_ports.append(port)
+                    self.to_delete_fw_ids.append(fw.fw_id)
+            if "ssh_custom_metrics" in ssh_info:
+                for entry in ssh_info["ssh_custom_metrics"]:
+                    port = entry['port']['mapped_port']
+                    self.to_delete_ports.append(port)
+                    self.to_delete_fw_ids.append(fw.fw_id)
+
+        self.to_delete_knodes.extend(fw.spec["jrms_info"]["nodenames"])
+
+        return self.to_delete_ports
     
     def delete_ports(self):
         # send the cmd to REST API server listening 8888 to delete the ports
         for port, fw_id in zip(self.to_delete_ports, self.to_delete_fw_ids):
             print(f"Delete port {port} used by fw_id {fw_id}")
             cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
-            response = self.send_command(cmd)
+            response = Ssh.send_command(cmd)
             response['cmd'] = cmd
             response['port'] = port
             response['complete_fw_id'] = fw_id
@@ -274,8 +295,13 @@ class MangagePorts(Ssh):
 
     def delete_nodes(self):
         # send the cmd to REST API server listening 8888 to delete the nodes
-        cmd = f"kubectl delete nodes {' '.join(self.to_delete_knodes)}"
-        response = self.send_command(cmd)
+        try:
+            cmd = f"kubectl delete nodes {' '.join(self.to_delete_knodes)}"
+        except Exception as e:
+            print(f"Error: {e}")
+            return
+        
+        response = Ssh.send_command(cmd)
         response['cmd'] = cmd
         response['nodes'] = self.to_delete_knodes
         logger = Logger('delete_nodes_logger')
@@ -364,5 +390,26 @@ def add_jrm():
     LPAD.add_wf(wf)
     print(f"Add workflow {wf.name} to LaunchPad")
 
+def delete_jrm(fw_id):
+    manage_ports = MangagePorts()
+    manage_ports.find_ports_from_fw_id(fw_id)
+    manage_ports.delete_ports()
+    manage_ports.delete_nodes()
+    print(f"Delete nodes: {manage_ports.to_delete_knodes}")
+    LPAD.delete_wf(int(fw_id))
+    print(f"Delete workflow {fw_id} from LaunchPad")
+
 if __name__ == "__main__":
-    add_jrm()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("action", choices=["add_wf", "delete_wf"], help="Action to perform")
+    parser.add_argument("--fw_id", help="Firework ID to delete")
+
+    args = parser.parse_args()
+
+    if args.action == "add_wf":
+        add_jrm()
+    elif args.action == "delete_wf":
+        if args.fw_id is None:
+            print("Please provide a Firework ID to delete")
+        else:
+            delete_jrm(args.fw_id)
