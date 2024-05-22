@@ -5,12 +5,13 @@ import (
     "net"
     "net/http"
     "os"
+    "os/exec"
     "os/signal"
     "strconv"
     "syscall"
     "github.com/gorilla/mux"
+    "context"
     "time"
-    "github.com/google/goexpect"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -34,24 +35,49 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
 func runCommand(w http.ResponseWriter, r *http.Request) {
     command := r.FormValue("command")
 
-    // Create a new Expect subprocess
-    e, _, err := goexpect.Spawn(command, -1)
+    // Create a new context with a timeout
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // adjust the timeout value as needed
+    defer cancel()
+
+    // Create the command with the context
+    cmd := exec.CommandContext(ctx, "bash", "-c", command)
+
+    // Get the stdin pipe
+    stdin, err := cmd.StdinPipe()
     if err != nil {
         fmt.Fprintf(w, `{"error": "%s"}`, err)
         return
     }
 
-    // Wait for the "Password + OTP" prompt
-    _, _, err = e.Expect("Password + OTP", 5*time.Second) // adjust the timeout value as needed
-    if err != nil {
-        // If the prompt is not detected within the timeout, the command completed successfully
-        fmt.Fprintf(w, `{"status": "Command completed"}`)
-    } else {
-        // If the prompt is detected, terminate the process
-        if err := e.Close(); err != nil {
+    // Close the stdin pipe to send an EOF signal
+    defer stdin.Close()
+
+    // Start the command and don't wait for it to finish
+    if err := cmd.Start(); err != nil {
+        fmt.Fprintf(w, `{"error": "%s"}`, err)
+        return
+    }
+
+    // Create a channel to wait for the command to finish
+    done := make(chan error, 1)
+    go func() {
+        done <- cmd.Wait()
+    }()
+
+    // Use a select statement to wait for the command to finish or for the context to timeout
+    select {
+    case <-ctx.Done():
+        if ctx.Err() == context.DeadlineExceeded {
+            fmt.Fprintf(w, `{"error": "Command timed out, check your connection"}`)
+        }
+        if err := cmd.Process.Kill(); err != nil {
             fmt.Fprintf(w, `{"error": "Failed to kill process: %s"}`, err)
+        }
+    case err := <-done:
+        if err != nil {
+            fmt.Fprintf(w, `{"error": "%s"}`, err)
         } else {
-            fmt.Fprintf(w, `{"error": "Command asked for a password, check your connection"}`)
+            fmt.Fprintf(w, `{"status": "Command completed"}`)
         }
     }
 }
