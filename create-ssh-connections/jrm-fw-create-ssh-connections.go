@@ -43,24 +43,33 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
     // Start the command and don't wait for it to finish
-    err := cmd.Start()
-    if err != nil {
+    if err := cmd.Start(); err != nil {
         fmt.Fprintf(w, `{"error": "%s"}`, err)
         return
     }
 
-    // Wait for the command to finish or the context to timeout
-    err = cmd.Wait()
-    if ctx.Err() == context.DeadlineExceeded {
-        fmt.Fprintf(w, `{"error": "Command timed out"}`)
-        return
-    } else if err != nil {
-        fmt.Fprintf(w, `{"error": "%s"}`, err)
-        return
-    }
+    // Create a channel to wait for the command to finish
+    done := make(chan error, 1)
+    go func() {
+        done <- cmd.Wait()
+    }()
 
-    // Send a response immediately
-    fmt.Fprintf(w, `{"status": "Command completed"}`)
+    // Use a select statement to wait for the command to finish or for the context to timeout
+    select {
+    case <-ctx.Done():
+        if ctx.Err() == context.DeadlineExceeded {
+            fmt.Fprintf(w, `{"error": "Command timed out, check your connection"}`)
+        }
+        if err := cmd.Process.Kill(); err != nil {
+            fmt.Fprintf(w, `{"error": "Failed to kill process: %s"}`, err)
+        }
+    case err := <-done:
+        if err != nil {
+            fmt.Fprintf(w, `{"error": "%s"}`, err)
+        } else {
+            fmt.Fprintf(w, `{"status": "Command completed"}`)
+        }
+    }
 }
 
 func main() {
