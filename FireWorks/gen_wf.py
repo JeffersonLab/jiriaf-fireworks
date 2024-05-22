@@ -329,6 +329,9 @@ def launch_jrm_script():
     print(f"ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
     ssh_db = ssh.connect_db()
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
+    if "error" in ssh_db or "error" in ssh_apiserver:
+        print("Error: Cannot connect to db or apiserver")
+        return
 
     tasks, nodenames = [], []
     for _ in range(slurm.nnode):
