@@ -67,11 +67,13 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
         reader := bufio.NewReader(stdout)
         for {
             line, err := reader.ReadString('\n')
-            if err != nil || len(line) > 0 {
-                // If any output is detected, send a SIGINT signal to the command's process
+            if err != nil {
+                // If an error occurs, send a SIGINT signal to the command's process
                 cmd.Process.Signal(os.Interrupt)
                 return
             }
+            // Print the output
+            fmt.Println(line)
         }
     }()
 
