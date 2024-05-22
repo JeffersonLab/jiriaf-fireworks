@@ -109,12 +109,24 @@ func main() {
     // Notify the channel for SIGINT signals
     signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-    // Run a goroutine that waits for the SIGINT signal
-    go func() {
-        <-c
-        fmt.Println("\nReceived an interrupt, stopping services...")
-        os.Exit(0)
-    }()
+    for {
+        restartServer = false
 
-    http.ListenAndServe(":8888", r)
+        // Run a goroutine that waits for the SIGINT signal
+        go func() {
+            <-c
+            fmt.Println("\nReceived an interrupt, stopping services...")
+            if restartServer {
+                fmt.Println("Restarting server...")
+            } else {
+                os.Exit(0)
+            }
+        }()
+
+        http.ListenAndServe(":8888", r)
+
+        if !restartServer {
+            break
+        }
+    }
 }
