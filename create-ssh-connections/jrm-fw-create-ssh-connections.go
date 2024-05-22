@@ -34,6 +34,8 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, `{"error": "No available port found"}`)
 }
 
+var restartServer bool
+
 func runCommand(w http.ResponseWriter, r *http.Request) {
     command := r.FormValue("command")
 
@@ -71,6 +73,7 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
             if err != nil || strings.Contains(line, "(jlabtsai@perlmutter.nersc.gov) Password + OTP: ") {
                 // If the specific output is detected or an error occurs, send a SIGINT signal to the command's process
                 cmd.Process.Signal(os.Interrupt)
+                restartServer = true
                 return
             }
             // Print the output
