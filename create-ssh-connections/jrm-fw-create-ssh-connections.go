@@ -46,6 +46,11 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     // Create the command with the context
     cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
+    // Set the process group ID to the command's process ID
+    cmd.SysProcAttr = &syscall.SysProcAttr{
+        Setpgid: true,
+    }
+
     // Get the stderr pipe
     stderr, err := cmd.StderrPipe()
     if err != nil {
