@@ -10,6 +10,8 @@ import (
     "strconv"
     "syscall"
     "github.com/gorilla/mux"
+    "context"
+    "time"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +34,13 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
 
 func runCommand(w http.ResponseWriter, r *http.Request) {
     command := r.FormValue("command")
-    cmd := exec.Command("bash", "-c", command)
+
+    // Create a new context with a timeout
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // adjust the timeout value as needed
+    defer cancel()
+
+    // Create the command with the context
+    cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
     // Start the command and don't wait for it to finish
     err := cmd.Start()
@@ -41,9 +49,20 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    // Wait for the command to finish or the context to timeout
+    err = cmd.Wait()
+    if ctx.Err() == context.DeadlineExceeded {
+        fmt.Fprintf(w, `{"error": "Command timed out"}`)
+        return
+    } else if err != nil {
+        fmt.Fprintf(w, `{"error": "%s"}`, err)
+        return
+    }
+
     // Send a response immediately
-    fmt.Fprintf(w, `{"status": "Command started"}`)
+    fmt.Fprintf(w, `{"status": "Command completed"}`)
 }
+
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
