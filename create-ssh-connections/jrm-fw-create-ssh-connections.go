@@ -75,7 +75,7 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
         reader := bufio.NewReader(stderr)
         for {
             line, err := reader.ReadString('\n')
-            if err != nil || strings.Contains(line, "(jlabtsai@perlmutter.nersc.gov) Password + OTP: ") {
+            if err != nil || strings.Contains(line, "Password + OTP: ") {
                 // If the specific output is detected or an error occurs, send a SIGINT signal to the command's process
                 cmd.Process.Signal(os.Interrupt)
                 restartServer = true
