@@ -67,8 +67,8 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
         reader := bufio.NewReader(stdout)
         for {
             line, err := reader.ReadString('\n')
-            if err != nil {
-                // If an error occurs, send a SIGINT signal to the command's process
+            if err != nil || line == "(jlabtsai@perlmutter.nersc.gov) Password + OTP: " {
+                // If the specific output is detected or an error occurs, send a SIGINT signal to the command's process
                 cmd.Process.Signal(os.Interrupt)
                 return
             }
