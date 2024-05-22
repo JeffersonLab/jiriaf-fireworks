@@ -6,14 +6,13 @@ import (
     "net/http"
     "os"
     "os/exec"
-    "os/signal"
     "strconv"
-    "syscall"
     "github.com/gorilla/mux"
     "context"
     "time"
     "bufio"
     "strings"
+    "golang.org/x/crypto/ssh"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -100,33 +99,49 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    r := mux.NewRouter()
-    r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
-    r.HandleFunc("/run", runCommand).Methods("POST")
+    // SSH client config
+    config := &ssh.ClientConfig{
+		User: "username",
+        Auth: []ssh.AuthMethod{
+            ssh.Password("password"),
+        },
+        HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+    }
 
-    // Create a channel to receive OS signals
-    c := make(chan os.Signal, 1)
-    // Notify the channel for SIGINT signals
-    signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+    // Connect to the remote server
+    client, err := ssh.Dial("tcp", "remote-server:22", config)
+    if err != nil {
+        panic(err)
+    }
 
+    // Create a session
+    session, err := client.NewSession()
+    if err != nil {
+        panic(err)
+    }
+    defer session.Close()
+
+    // Redirect session's stderr to a pipe
+    stderr, _ := session.StderrPipe()
+
+    // Start the command
+    if err := session.Start("command"); err != nil {
+        panic(err)
+    }
+
+    // Read from the stderr pipe
+    reader := bufio.NewReader(stderr)
     for {
-        restartServer = false
-
-        // Run a goroutine that waits for the SIGINT signal
-        go func() {
-            <-c
-            fmt.Println("\nReceived an interrupt, stopping services...")
-            if restartServer {
-                fmt.Println("Restarting server...")
-            } else {
-                os.Exit(0)
-            }
-        }()
-
-        http.ListenAndServe(":8888", r)
-
-        if !restartServer {
+        line, err := reader.ReadString('\n')
+        if err != nil || strings.Contains(line, "(jlabtsai@perlmutter.nersc.gov) Password + OTP: ") {
+            // If the specific output is detected or an error occurs, send a SIGINT signal to the command's process
+            session.Signal(ssh.SIGINT)
             break
         }
+        // Print the output
+        fmt.Println(line)
     }
+
+    // Wait for the command to finish
+    session.Wait()
 }
