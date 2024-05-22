@@ -6,12 +6,13 @@ import requests, json, logging
 import argparse
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
+LOG_PATH = '/fw/logs/'
 
 class Logger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler(f'/fw/logs/{name}.log')
+        handler = logging.FileHandler(f'{LOG_PATH}{name}.log')
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
@@ -325,10 +326,16 @@ def launch_jrm_script():
     time.sleep(5)
     
     # run db, apiserver ssh
-    print("Connect to db, apiserver")
-    print(f"ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
+    print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
     ssh_db = ssh.connect_db()
+    if "error" in ssh_db:
+        print(f"Error in connecting to db. Check the log at {LOG_PATH}connect_db_logger.log")
+        return None
+    
     ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
+    if "error" in ssh_apiserver:
+        print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
+        return None
 
     tasks, nodenames = [], []
     for _ in range(slurm.nnode):
@@ -386,7 +393,11 @@ def launch_jrm_script():
 
 
 def add_jrm():
-    wf = launch_jrm_script()
+    wf = launch_jrm_script() if launch_jrm_script() else None
+    if wf is None:
+        print("Error: No workflow is created")
+        return
+    
     LPAD.add_wf(wf)
     print(f"Add workflow {wf.name} to LaunchPad")
 
