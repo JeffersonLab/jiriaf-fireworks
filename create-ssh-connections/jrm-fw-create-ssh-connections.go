@@ -82,7 +82,7 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
                 return
             }
             // Print the output
-            fmt.Println(line)
+            // fmt.Println(line)
         }
     }()
 
