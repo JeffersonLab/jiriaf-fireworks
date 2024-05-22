@@ -115,16 +115,17 @@ func main() {
     signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
     for {
-        restartServer = false
+        restartServer = true
 
         // Run a goroutine that waits for the SIGINT signal
         go func() {
-            <-c
+            sig := <-c
             fmt.Println("\nReceived an interrupt, stopping services...")
-            if restartServer {
-                fmt.Println("Restarting server...")
-            } else {
+            if sig == os.Interrupt {
+                fmt.Println("Terminating program due to keyboard interrupt...")
                 os.Exit(0)
+            } else if restartServer {
+                fmt.Println("Restarting server...")
             }
         }()
 
