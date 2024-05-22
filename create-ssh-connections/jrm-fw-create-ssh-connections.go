@@ -13,6 +13,7 @@ import (
     "context"
     "time"
     "bufio"
+    "strings"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -43,8 +44,8 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     // Create the command with the context
     cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
-    // Get the stdout pipe
-    stdout, err := cmd.StdoutPipe()
+    // Get the stderr pipe
+    stderr, err := cmd.StderrPipe()
     if err != nil {
         fmt.Fprintf(w, `{"error": "%s"}`, err)
         return
@@ -62,12 +63,12 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
         done <- cmd.Wait()
     }()
 
-    // Read from the stdout pipe in a separate goroutine
+    // Read from the stderr pipe in a separate goroutine
     go func() {
-        reader := bufio.NewReader(stdout)
+        reader := bufio.NewReader(stderr)
         for {
             line, err := reader.ReadString('\n')
-            if err != nil || line == "(jlabtsai@perlmutter.nersc.gov) Password + OTP: " {
+            if err != nil || strings.Contains(line, "(jlabtsai@perlmutter.nersc.gov) Password + OTP: ") {
                 // If the specific output is detected or an error occurs, send a SIGINT signal to the command's process
                 cmd.Process.Signal(os.Interrupt)
                 return
