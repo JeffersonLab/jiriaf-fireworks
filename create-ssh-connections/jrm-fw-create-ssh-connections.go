@@ -12,6 +12,7 @@ import (
     "github.com/gorilla/mux"
     "context"
     "time"
+    "bufio"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -42,15 +43,12 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     // Create the command with the context
     cmd := exec.CommandContext(ctx, "bash", "-c", command)
 
-    // Get the stdin pipe
-    stdin, err := cmd.StdinPipe()
+    // Get the stdout pipe
+    stdout, err := cmd.StdoutPipe()
     if err != nil {
         fmt.Fprintf(w, `{"error": "%s"}`, err)
         return
     }
-
-    // Close the stdin pipe to send an EOF signal
-    defer stdin.Close()
 
     // Start the command and don't wait for it to finish
     if err := cmd.Start(); err != nil {
@@ -62,6 +60,19 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     done := make(chan error, 1)
     go func() {
         done <- cmd.Wait()
+    }()
+
+    // Read from the stdout pipe in a separate goroutine
+    go func() {
+        reader := bufio.NewReader(stdout)
+        for {
+            line, err := reader.ReadString('\n')
+            if err != nil || len(line) > 0 {
+                // If any output is detected, send a SIGINT signal to the command's process
+                cmd.Process.Signal(os.Interrupt)
+                return
+            }
+        }
     }()
 
     // Use a select statement to wait for the command to finish or for the context to timeout
