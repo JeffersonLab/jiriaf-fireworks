@@ -393,7 +393,8 @@ def launch_jrm_script():
 
 
 def add_jrm():
-    wf = launch_jrm_script() if launch_jrm_script() else None
+    result = launch_jrm_script()
+    wf = result if result else None
     if wf is None:
         print("Error: No workflow is created")
         return
