@@ -129,7 +129,7 @@ One the compute node, we establish an SSH connections to the `login04` on Perlmu
 3. `ssh -NfR x:localhost:8080 login04` for custom metrics. `8080` is the port where the custom metrics are exposed. (optional)
 
 ### Figure
-![Network Map](markdown/jrm-network.png)
+![Network Map](markdown/jrm-network.pdf)
 
 # To-do
 - [x ] Add a feature to delete the ports. One can identify the ports by checking the database and searching for the Completed fireworks.
