@@ -357,13 +357,20 @@ def launch_jrm_script():
 
     fw.spec["_category"] = jrm.site
 
+    pre_rocket_string = f"""
+    |-
+    conda activate fireworks
+    ssh -NfL 27017:localhost:27017 {ssh.remote}
+    """
+
     fw.spec["_queueadapter"] = {
         "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
         "qos": slurm.qos,
         "nodes": slurm.nnode,
         "account": slurm.account,
-        "constraint": slurm.nodetype
+        "constraint": slurm.nodetype,
+        "pre_rocket": pre_rocket_string
         }
     
     fw.spec["jrms_info"] = {
