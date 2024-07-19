@@ -74,8 +74,8 @@ jrm:
     control_plane_ip: ${control_plane_ip}  #jiriaf2301
     apiserver_port: ${apiserver_port} #35679
     kubeconfig:  ${kubeconfig}
-    vkubelet_pod_ip: "172.17.0.1"
-    image: docker:jlabtsai/vk-cmd:main
+    vkubelet_pod_ip: ${vkubelet_pod_ip}
+    image: ${jrm_image}
 
     $custom_metrics_ports_yaml
 
