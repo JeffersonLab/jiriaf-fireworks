@@ -49,6 +49,14 @@ if [ -z "$ssh_remote_proxy" ]; then
     echo "The ssh_remote_proxy variable is not set."
     exit 1
 fi
+if [ -z "$site" ]; then
+    echo "The site variable is not set."
+    exit 1
+fi
+if [ -z "$jrm_image" ]; then
+    echo "The jrm_image variable is not set."
+    exit 1
+fi
 
 # Convert the space-separated string into a YAML list if it's set and not an empty string
 if [ -n "$custom_metrics_ports" ] && [ "$custom_metrics_ports" != "" ]; then
@@ -58,6 +66,17 @@ $custom_metrics_ports_yaml"
 else
     custom_metrics_ports_yaml=""
 fi
+
+# Convert the space-separated string into a YAML list if it's set and not an empty string for vkubelet_pod_ips
+if [ -n "$vkubelet_pod_ips" ] && [ "$vkubelet_pod_ips" != "" ]; then
+    vkubelet_pod_ips_yaml=$(for ip in $vkubelet_pod_ips; do echo "    - $ip"; done)
+    vkubelet_pod_ips_yaml="vkubelet_pod_ips:
+$vkubelet_pod_ips_yaml"
+else
+    vkubelet_pod_ips_yaml=""
+fi
+
+
 
 cat << EOF > /fw/node-config.yaml
 slurm:
@@ -74,9 +93,9 @@ jrm:
     control_plane_ip: ${control_plane_ip}  #jiriaf2301
     apiserver_port: ${apiserver_port} #35679
     kubeconfig:  ${kubeconfig}
-    vkubelet_pod_ip: "172.17.0.1"
-    image: docker:jlabtsai/vk-cmd:main
+    image: ${jrm_image}
 
+    $vkubelet_pod_ips_yaml
     $custom_metrics_ports_yaml
 
 ssh:

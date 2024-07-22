@@ -52,9 +52,14 @@ class Jrm:
             self.kubeconfig = "/global/homes/j/jlabtsai/config/kubeconfig"
 
         self.nodename = self.node_config["jrm"]["nodename"]
-        self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
+        self.vkubelet_pod_ips = self.node_config["jrm"]["vkubelet_pod_ips"] if "vkubelet_pod_ips" in self.node_config["jrm"] else []
+    
         self.site = self.node_config["jrm"]["site"]
+        if not self.site:
+            self.site = "perlmutter"
         self.image = self.node_config["jrm"]["image"]
+        if not self.image:
+            self.image = "docker:jlabtsai/vk-cmd:main"
         self.custom_metrics_ports = self.node_config["jrm"]["custom_metrics_ports"] if "custom_metrics_ports" in self.node_config["jrm"] else []
 
 class Ssh:
@@ -164,6 +169,7 @@ class Task:
         respons = self.ssh.request_available_port(10000, 19999)
         kubelet_port = respons['port']
         self.jrm_ports.append(kubelet_port)
+
       
         commands = []
         commands.append(f"ssh -NfL {self.jrm.apiserver_port}:localhost:{self.jrm.apiserver_port} {self.ssh.remote}")
@@ -191,7 +197,7 @@ class Task:
                         
         return "; ".join(commands), kubelet_port
 
-    def get_jrm_script(self, nodename, kubelet_port, ssh_cmds):
+    def get_jrm_script(self, nodename, kubelet_port, ssh_cmds, vkubelet_pod_ip):
         # translate walltime to seconds, eg 01:00:00 -> 3600
         jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
         # jrm need 1 min to warm up. substract 1*60 from jrm_walltime.
@@ -202,13 +208,13 @@ class Task:
 
             export NODENAME={nodename}
             export KUBECONFIG={self.jrm.kubeconfig}
-            export VKUBELET_POD_IP={self.jrm.vkubelet_pod_ip}
+            export VKUBELET_POD_IP={vkubelet_pod_ip}
             export KUBELET_PORT={kubelet_port}
             export JIRIAF_WALLTIME={jrm_walltime}
             export JIRIAF_NODETYPE={self.slurm.nodetype}
             export JIRIAF_SITE={self.jrm.site}
 
-            echo JRM: \$NODENAME is running on \$HOSTNAME
+            echo JRM: \$NODENAME is running on \$HOSTNAME with IP \$VKUBELET_POD_IP and port \$KUBELET_PORT
             echo Walltime: \$JIRIAF_WALLTIME, nodetype: \$JIRIAF_NODETYPE, site: \$JIRIAF_SITE
 
             {ssh_cmds}
@@ -338,14 +344,15 @@ def launch_jrm_script():
         return None
 
     tasks, nodenames = [], []
-    for _ in range(slurm.nnode):
+    for node_index in range(slurm.nnode):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
         nodename = f"{jrm.nodename}-{timestamp}"
 
         remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename)
 
-        script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds)
+        print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
+        script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
         tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
         nodenames.append(nodename)
@@ -357,13 +364,21 @@ def launch_jrm_script():
 
     fw.spec["_category"] = jrm.site
 
+    # pre_rocket_string = f""" 
+    # conda activate fireworks
+    # ssh -NfL 27017:localhost:27017 {ssh.remote}
+    # """
+    
+    pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {ssh.remote}"
+
     fw.spec["_queueadapter"] = {
         "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
         "qos": slurm.qos,
         "nodes": slurm.nnode,
         "account": slurm.account,
-        "constraint": slurm.nodetype
+        "constraint": slurm.nodetype,
+        "pre_rocket": pre_rocket_string
         }
     
     fw.spec["jrms_info"] = {
@@ -372,7 +387,7 @@ def launch_jrm_script():
         "apiserver_port": jrm.apiserver_port,
         "kubeconfig": jrm.kubeconfig,
         "control_plane_ip": jrm.control_plane_ip,
-        "vkubelet_pod_ip": jrm.vkubelet_pod_ip,
+        "vkubelet_pod_ips": jrm.vkubelet_pod_ips,
         "site": jrm.site,
         "image": jrm.image,
         "mapped_custom_metrics_ports": {str(k): str(v) for k, v in task.dict_mapped_custom_metrics_ports.items()}
