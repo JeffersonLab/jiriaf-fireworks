@@ -53,8 +53,14 @@ class Jrm:
 
         self.nodename = self.node_config["jrm"]["nodename"]
         self.vkubelet_pod_ip = self.node_config["jrm"]["vkubelet_pod_ip"]
+        if not self.vkubelet_pod_ip:
+            self.vkubelet_pod_ip = "172.17.0.1"
         self.site = self.node_config["jrm"]["site"]
+        if not self.site:
+            self.site = "perlmutter"
         self.image = self.node_config["jrm"]["image"]
+        if not self.image:
+            self.image = "docker:jlabtsai/vk-cmd:main"
         self.custom_metrics_ports = self.node_config["jrm"]["custom_metrics_ports"] if "custom_metrics_ports" in self.node_config["jrm"] else []
 
 class Ssh:

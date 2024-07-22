@@ -49,6 +49,20 @@ if [ -z "$ssh_remote_proxy" ]; then
     echo "The ssh_remote_proxy variable is not set."
     exit 1
 fi
+if [ -z "$site" ]; then
+    echo "The site variable is not set."
+    exit 1
+fi
+
+if [ -z "$vkubelet_pod_ip" ]; then
+    echo "The vkubelet_pod_ip variable is not set."
+    exit 1
+fi
+
+if [ -z "$jrm_image" ]; then
+    echo "The jrm_image variable is not set."
+    exit 1
+fi
 
 # Convert the space-separated string into a YAML list if it's set and not an empty string
 if [ -n "$custom_metrics_ports" ] && [ "$custom_metrics_ports" != "" ]; then
