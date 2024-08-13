@@ -245,12 +245,12 @@ class MangagePorts:
         self.to_delete_knodes = []
 
 
-    def find_ports_from_lpad(self, lost_runs_time_limit=5 * 60):
+    def find_ports_from_lpad(self, lost_runs_time_limit=3 * 60 * 60):
         completed_or_fizzled_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "FIZZLED"]}})
-        lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
+        # lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
         print(f"Completed or Fizzled fw_ids: {completed_or_fizzled_fws}")
-        print(f"Lost fw_ids: {lost_fws}")
-        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_fizzled_fws+lost_fws]
+        # print(f"Lost fw_ids: {lost_fws}")
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_fizzled_fws] #+lost_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
                 ssh_info = fw.spec["ssh_info"]
