@@ -8,6 +8,7 @@ qos: debug
 constraint: cpu
 account:
 job_name: jiriaf
+_fw_template_file: /global/homes/j/jlabtsai/config/queue_template.slurm
 logdir: /global/homes/j/jlabtsai/config/logs
 pre_rocket: |
   conda activate fireworks

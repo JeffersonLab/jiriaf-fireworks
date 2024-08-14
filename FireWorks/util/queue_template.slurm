@@ -15,6 +15,7 @@
 #SBATCH --output=$${job_name}-%j.out
 #SBATCH --error=$${job_name}-%j.error
 #SBATCH --constraint=$${constraint}
+#SBATCH --reservation=$${reservation}
 
 
 $${pre_rocket}
