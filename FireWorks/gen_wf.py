@@ -332,8 +332,8 @@ def launch_jrm_script():
 
     # delete wf from LaunchPad
     for fw_id in manage_ports.to_delete_fw_ids:
-        LPAD.delete_wf(int(fw_id))
         print(f"Delete workflow {fw_id} from Launch Pad")
+        LPAD.delete_wf(int(fw_id))
 
     time.sleep(5)
     
