@@ -329,6 +329,12 @@ def launch_jrm_script():
     manage_ports.delete_ports()
     manage_ports.delete_nodes()
     print(f"Delete nodes: {manage_ports.to_delete_knodes}")
+    
+    # delete wf from LaunchPad
+    for fw_id in manage_ports.to_delete_fw_ids:
+        LPAD.delete_wf(fw_id)
+        print(f"Delete workflow {fw_id} from Launch Pad")
+
     time.sleep(5)
     
     # run db, apiserver ssh
