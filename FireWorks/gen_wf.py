@@ -27,7 +27,7 @@ class Slurm:
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
-        self.nnode = self.node_config["slurm"]["nodes"]
+        self.nodes = self.node_config["slurm"]["nodes"]
         self.qos = self.node_config["slurm"]["qos"]
         self.walltime = self.node_config["slurm"]["walltime"]
         self.account = self.node_config["slurm"]["account"]
@@ -351,15 +351,15 @@ def launch_jrm_script():
         return None
 
 
-    # check if vkubelet_pod_ips is greater than nnode
-    if len(jrm.vkubelet_pod_ips) < slurm.nnode:
-        print(f"Waring: vkubelet_pod_ips is less than nnode. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nnode: {slurm.nnode}")
-        # extend vkubelet_pod_ips to nnode with the first ip
-        jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nnode - len(jrm.vkubelet_pod_ips)))
+    # check if vkubelet_pod_ips is greater than nodes
+    if len(jrm.vkubelet_pod_ips) < slurm.nodes:
+        print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nodes: {slurm.nodes}")
+        # extend vkubelet_pod_ips to nodes with the first ip
+        jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nodes - len(jrm.vkubelet_pod_ips)))
         print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
 
     tasks, nodenames = [], []
-    for node_index in range(slurm.nnode):
+    for node_index in range(slurm.nodes):
         # unique timestamp for each node
         timestamp = str(int(time.time()))
         nodename = f"{jrm.nodename}-{timestamp}"
@@ -391,7 +391,7 @@ def launch_jrm_script():
         "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
         "qos": slurm.qos,
-        "nodes": slurm.nnode,
+        "nodes": slurm.nodes,
         "account": slurm.account,
         "constraint": slurm.constraint,
         "pre_rocket": pre_rocket_string,
