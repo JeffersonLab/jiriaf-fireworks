@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if each variable is set and print a message if it's not
-if [ -z "$nnodes" ]; then
-    echo "The nnodes variable is not set."
+if [ -z "$nodes" ]; then
+    echo "The nodes variable is not set."
     exit 1
 fi
 if [ -z "$constraint" ]; then
@@ -80,7 +80,7 @@ fi
 
 cat << EOF > /fw/node-config.yaml
 slurm:
-    nnodes: ${nnodes}
+    nodes: ${nodes}
     constraint: ${constraint}
     walltime: ${walltime}
     qos: ${qos}
