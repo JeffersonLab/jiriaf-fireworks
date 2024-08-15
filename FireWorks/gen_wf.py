@@ -31,7 +31,7 @@ class Slurm:
         self.qos = self.node_config["slurm"]["qos"]
         self.walltime = self.node_config["slurm"]["walltime"]
         self.account = self.node_config["slurm"]["account"]
-        self.nodetype = self.node_config["slurm"]["nodetype"]
+        self.constraint = self.node_config["slurm"]["constraint"]
 
 class Jrm:
     def __init__(self, config_file="/fw/node-config.yaml"):
@@ -211,7 +211,7 @@ class Task:
             export VKUBELET_POD_IP={vkubelet_pod_ip}
             export KUBELET_PORT={kubelet_port}
             export JIRIAF_WALLTIME={jrm_walltime}
-            export JIRIAF_NODETYPE={self.slurm.nodetype}
+            export JIRIAF_NODETYPE={self.slurm.constraint}
             export JIRIAF_SITE={self.jrm.site}
 
             echo JRM: \$NODENAME is running on \$HOSTNAME with IP \$VKUBELET_POD_IP and port \$KUBELET_PORT
@@ -386,7 +386,7 @@ def launch_jrm_script():
         "qos": slurm.qos,
         "nodes": slurm.nnode,
         "account": slurm.account,
-        "constraint": slurm.nodetype,
+        "constraint": slurm.constraint,
         "pre_rocket": pre_rocket_string
         }
     

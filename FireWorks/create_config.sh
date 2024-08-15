@@ -5,8 +5,8 @@ if [ -z "$nnodes" ]; then
     echo "The nnodes variable is not set."
     exit 1
 fi
-if [ -z "$nodetype" ]; then
-    echo "The nodetype variable is not set."
+if [ -z "$constraint" ]; then
+    echo "The constraint variable is not set."
     exit 1
 fi
 if [ -z "$walltime" ]; then
@@ -81,7 +81,7 @@ fi
 cat << EOF > /fw/node-config.yaml
 slurm:
     nnodes: ${nnodes}
-    nodetype: ${nodetype}
+    constraint: ${constraint}
     walltime: ${walltime}
     qos: ${qos}
     account: ${account} #m4637 - jiriaf or m3792 - nersc
