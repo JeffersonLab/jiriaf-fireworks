@@ -32,6 +32,7 @@ class Slurm:
         self.walltime = self.node_config["slurm"]["walltime"]
         self.account = self.node_config["slurm"]["account"]
         self.constraint = self.node_config["slurm"]["constraint"]
+        self.reservation = self.node_config["slurm"]["reservation"] if "reservation" in self.node_config["slurm"] else None
 
 class Jrm:
     def __init__(self, config_file="/fw/node-config.yaml"):
@@ -386,15 +387,20 @@ def launch_jrm_script():
     
     pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {ssh.remote}"
 
-    fw.spec["_queueadapter"] = {
+    queueadapter = {
         "job_name": f"{jrm.site}_{nodename}",
         "walltime": slurm.walltime,
         "qos": slurm.qos,
         "nodes": slurm.nnode,
         "account": slurm.account,
         "constraint": slurm.constraint,
-        "pre_rocket": pre_rocket_string
-        }
+        "pre_rocket": pre_rocket_string,
+    }
+    if slurm.reservation:
+        queueadapter["reservation"] = slurm.reservation
+
+    fw.spec["_queueadapter"] = queueadapter
+    
     
     fw.spec["jrms_info"] = {
         "nodenames": nodenames,
