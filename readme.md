@@ -58,7 +58,7 @@ Here's what it does:
 ### Step 2: Configure Environment Variables
 The `main.sh` script is responsible for initializing the environment variables required to launch JRMs. It sets the following variables:
 
-- `nnodes`: This represents the number of nodes.
+- `nodess`: This represents the number of nodes.
 - `nodetype`: This defines the type of node.
 - `walltime`: This is the walltime allocated for the slurm job and JRM.
 - `nodename`: This is the name assigned to the node.
