@@ -349,6 +349,14 @@ def launch_jrm_script():
         print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
         return None
 
+
+    # check if vkubelet_pod_ips is greater than nnode
+    if len(jrm.vkubelet_pod_ips) < slurm.nnode:
+        print(f"Waring: vkubelet_pod_ips is less than nnode. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nnode: {slurm.nnode}")
+        # extend vkubelet_pod_ips to nnode with the first ip
+        jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nnode - len(jrm.vkubelet_pod_ips)))
+        print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
+
     tasks, nodenames = [], []
     for node_index in range(slurm.nnode):
         # unique timestamp for each node
@@ -357,9 +365,7 @@ def launch_jrm_script():
 
         remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename)
 
-        if len(jrm.vkubelet_pod_ips) <= node_index:
-            raise ValueError(f"vkubelet_pod_ips is not enough for {slurm.nodes} nodes")
-            
+        
         print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
         script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
         tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
