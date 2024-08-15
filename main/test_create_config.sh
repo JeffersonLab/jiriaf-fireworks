@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set up the environment variables
-export nnodes=10
+export nodes=10
 export nodetype="type"
 export walltime="1:00:00"
 export account="account"
@@ -19,8 +19,8 @@ if [ ! -f /fw/node-config.yaml ]; then
 fi
 
 # Check if the file contains the correct content
-if ! grep -q "nnodes: ${nnodes}" /fw/node-config.yaml; then
-    echo "The nnodes variable was not correctly set in the file."
+if ! grep -q "nodes: ${nodes}" /fw/node-config.yaml; then
+    echo "The nodes variable was not correctly set in the file."
     exit 1
 fi
 if ! grep -q "nodetype: ${nodetype}" /fw/node-config.yaml; then
