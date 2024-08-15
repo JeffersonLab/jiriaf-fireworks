@@ -27,7 +27,7 @@ class Slurm:
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
-        self.nnode = self.node_config["slurm"]["nnodes"]
+        self.nnode = self.node_config["slurm"]["nodes"]
         self.qos = self.node_config["slurm"]["qos"]
         self.walltime = self.node_config["slurm"]["walltime"]
         self.account = self.node_config["slurm"]["account"]
