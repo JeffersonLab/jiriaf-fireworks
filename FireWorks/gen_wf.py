@@ -315,18 +315,6 @@ class MangagePorts:
         logger = Logger('delete_nodes_logger')
         logger.log(response)
 
-    def check_ports(self, ip, port):
-        url = f"http://172.17.0.1:8888/checkPort/{ip}/{port}"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                print(response.json())
-            else:
-                print(f"Failed to check port. Status code: {response.status_code}")
-        except requests.RequestException as e:
-            print(f"An error occurred: {e}")
-
-
 class JrmManager:
     def launch_jrm_script(self):
         slurm = Slurm()
