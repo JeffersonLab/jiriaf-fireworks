@@ -85,7 +85,7 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
             // fmt.Println(line)
         }
     }()
-
+    
     // Use a select statement to wait for the command to finish or for the context to timeout
     select {
     case <-ctx.Done():
@@ -104,11 +104,28 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+// write a new http route for checking if port is open or not
+func checkPort(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    ip := vars["ip"]
+    port, _ := strconv.Atoi(vars["port"])
+
+    address := fmt.Sprintf("%s:%d", ip, port)
+    listener, err := net.Listen("tcp", address)
+    if err == nil {
+        listener.Close()
+        fmt.Fprintf(w, `{"status": "Port %d is open"}`, port)
+    } else {
+        fmt.Fprintf(w, `{"status": "Port %d is closed"}`, port)
+    }
+}
+
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
     r.HandleFunc("/run", runCommand).Methods("POST")
-
+    r.HandleFunc("/check_port/{ip}/{port:[0-9]+}", checkPort).Methods("GET")
+    
     // Create a channel to receive OS signals
     c := make(chan os.Signal, 1)
     // Notify the channel for SIGINT signals
