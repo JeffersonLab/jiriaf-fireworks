@@ -315,137 +315,140 @@ class MangagePorts:
         logger = Logger('delete_nodes_logger')
         logger.log(response)
 
-
-def launch_jrm_script():
-    slurm = Slurm()
-    jrm = Jrm()
-    ssh = Ssh()
-    
-    task = Task(slurm, jrm, ssh)
-
-    # check and delete the ports used by the completed and lost fireworks on local
-    manage_ports = MangagePorts()
-    manage_ports.find_ports_from_lpad()
-    print(f"Found used ports: {manage_ports.to_delete_ports}")
-    manage_ports.delete_ports()
-    manage_ports.delete_nodes()
-    print(f"Delete nodes: {manage_ports.to_delete_knodes}")
-
-    # delete wf from LaunchPad
-    for fw_id in set(manage_ports.to_delete_fw_ids):
-        print(f"Delete workflow {fw_id} from Launch Pad")
-        LPAD.delete_wf(int(fw_id))
-
-    time.sleep(5)
-    
-    # run db, apiserver ssh
-    print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
-    ssh_db = ssh.connect_db()
-    if "error" in ssh_db:
-        print(f"Error in connecting to db. Check the log at {LOG_PATH}connect_db_logger.log")
-        return None
-    
-    ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
-    if "error" in ssh_apiserver:
-        print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
-        return None
+    def check_ports(self, ip, port):
+        url = f"http://172.17.0.1:8888/checkPort/{ip}/{port}"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                print(response.json())
+            else:
+                print(f"Failed to check port. Status code: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"An error occurred: {e}")
 
 
-    # check if vkubelet_pod_ips is greater than nodes
-    if len(jrm.vkubelet_pod_ips) < slurm.nodes:
-        print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nodes: {slurm.nodes}")
-        # extend vkubelet_pod_ips to nodes with the first ip
-        jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nodes - len(jrm.vkubelet_pod_ips)))
-        print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
-
-    tasks, nodenames = [], []
-    for node_index in range(slurm.nodes):
-        # unique timestamp for each node
-        timestamp = str(int(time.time()))
-        nodename = f"{jrm.nodename}-{timestamp}"
-
-        remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename)
-
+class JrmManager:
+    def launch_jrm_script(self):
+        slurm = Slurm()
+        jrm = Jrm()
+        ssh = Ssh()
         
-        print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
-        script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
-        tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
-        tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
-        nodenames.append(nodename)
+        task = Task(slurm, jrm, ssh)
 
-    exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
-    tasks.append(exec_task)
+        # check and delete the ports used by the completed and lost fireworks on local
+        manage_ports = MangagePorts()
+        manage_ports.find_ports_from_lpad()
+        print(f"Found used ports: {manage_ports.to_delete_ports}")
+        manage_ports.delete_ports()
+        manage_ports.delete_nodes()
+        print(f"Delete nodes: {manage_ports.to_delete_knodes}")
 
-    fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
+        # delete wf from LaunchPad
+        for fw_id in set(manage_ports.to_delete_fw_ids):
+            print(f"Delete workflow {fw_id} from Launch Pad")
+            LPAD.delete_wf(int(fw_id))
 
-    fw.spec["_category"] = jrm.site
+        time.sleep(5)
+        
+        # run db, apiserver ssh
+        print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
+        ssh_db = ssh.connect_db()
+        if "error" in ssh_db:
+            print(f"Error in connecting to db. Check the log at {LOG_PATH}connect_db_logger.log")
+            return None
+        
+        ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
+        if "error" in ssh_apiserver:
+            print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
+            return None
 
-    # pre_rocket_string = f""" 
-    # conda activate fireworks
-    # ssh -NfL 27017:localhost:27017 {ssh.remote}
-    # """
-    
-    pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {ssh.remote}"
+        # check if vkubelet_pod_ips is greater than nodes
+        if len(jrm.vkubelet_pod_ips) < slurm.nodes:
+            print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nodes: {slurm.nodes}")
+            # extend vkubelet_pod_ips to nodes with the first ip
+            jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nodes - len(jrm.vkubelet_pod_ips)))
+            print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
 
-    queueadapter = {
-        "job_name": f"{jrm.site}_{nodename}",
-        "walltime": slurm.walltime,
-        "qos": slurm.qos,
-        "nodes": slurm.nodes,
-        "account": slurm.account,
-        "constraint": slurm.constraint,
-        "pre_rocket": pre_rocket_string,
-    }
-    if slurm.reservation:
-        queueadapter["reservation"] = slurm.reservation
+        tasks, nodenames = [], []
+        for node_index in range(slurm.nodes):
+            # unique timestamp for each node
+            timestamp = str(int(time.time()))
+            nodename = f"{jrm.nodename}-{timestamp}"
 
-    fw.spec["_queueadapter"] = queueadapter
-    
-    
-    fw.spec["jrms_info"] = {
-        "nodenames": nodenames,
-        "jrm_ports": task.jrm_ports,
-        "apiserver_port": jrm.apiserver_port,
-        "kubeconfig": jrm.kubeconfig,
-        "control_plane_ip": jrm.control_plane_ip,
-        "vkubelet_pod_ips": jrm.vkubelet_pod_ips,
-        "site": jrm.site,
-        "image": jrm.image,
-        "mapped_custom_metrics_ports": {str(k): str(v) for k, v in task.dict_mapped_custom_metrics_ports.items()}
-    }
+            remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename)
 
-    fw.spec["ssh_info"] = {
-        "ssh_metrics": task.ssh_metrics_cmds,
-        "ssh_db": ssh_db,
-        "ssh_apiserver": ssh_apiserver,
-        "ssh_custom_metrics": task.ssh_custom_metrics_cmds
-    }
-    
-    # preempt has min walltime of 2 hours (can get stop after 2 hours)
-    # debug_preempt has max walltime of 30 minutes (can get stop after 5 minutes)
-    wf = Workflow([fw], {fw: []})
-    wf.name = f"{jrm.site}_{nodename}"
-    return wf
+            print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
+            script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
+            tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
+            tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
+            nodenames.append(nodename)
+
+        exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
+        tasks.append(exec_task)
+
+        fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
+
+        fw.spec["_category"] = jrm.site
+
+        pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {ssh.remote}"
+
+        queueadapter = {
+            "job_name": f"{jrm.site}_{nodename}",
+            "walltime": slurm.walltime,
+            "qos": slurm.qos,
+            "nodes": slurm.nodes,
+            "account": slurm.account,
+            "constraint": slurm.constraint,
+            "pre_rocket": pre_rocket_string,
+        }
+        if slurm.reservation:
+            queueadapter["reservation"] = slurm.reservation
+
+        fw.spec["_queueadapter"] = queueadapter
+
+        fw.spec["jrms_info"] = {
+            "nodenames": nodenames,
+            "jrm_ports": task.jrm_ports,
+            "apiserver_port": jrm.apiserver_port,
+            "kubeconfig": jrm.kubeconfig,
+            "control_plane_ip": jrm.control_plane_ip,
+            "vkubelet_pod_ips": jrm.vkubelet_pod_ips,
+            "site": jrm.site,
+            "image": jrm.image,
+            "mapped_custom_metrics_ports": {str(k): str(v) for k, v in task.dict_mapped_custom_metrics_ports.items()}
+        }
+
+        fw.spec["ssh_info"] = {
+            "ssh_metrics": task.ssh_metrics_cmds,
+            "ssh_db": ssh_db,
+            "ssh_apiserver": ssh_apiserver,
+            "ssh_custom_metrics": task.ssh_custom_metrics_cmds
+        }
+
+        wf = Workflow([fw], {fw: []})
+        wf.name = f"{jrm.site}_{nodename}"
+        return wf
+
+    def add_jrm(self):
+        result = self.launch_jrm_script()
+        wf = result if result else None
+        if wf is None:
+            print("Error: No workflow is created")
+            return
+        
+        LPAD.add_wf(wf)
+        print(f"Add workflow {wf.name} to LaunchPad")
+
+    def delete_jrm(self, fw_id):
+        manage_ports = MangagePorts()
+        manage_ports.find_ports_from_fw_id(fw_id)
+        manage_ports.delete_ports()
+        manage_ports.delete_nodes()
+        print(f"Delete nodes: {manage_ports.to_delete_knodes}")
+        LPAD.delete_wf(int(fw_id))
+        print(f"Delete workflow {fw_id} from LaunchPad")
 
 
-def add_jrm():
-    result = launch_jrm_script()
-    wf = result if result else None
-    if wf is None:
-        print("Error: No workflow is created")
-        return
-    
-    LPAD.add_wf(wf)
-    print(f"Add workflow {wf.name} to LaunchPad")
-
-def delete_jrm(fw_id):
-    manage_ports = MangagePorts()
-    manage_ports.find_ports_from_fw_id(fw_id)
-    manage_ports.delete_ports()
-    manage_ports.delete_nodes()
-    print(f"Delete nodes: {manage_ports.to_delete_knodes}")
-    LPAD.delete_wf(int(fw_id))
-    print(f"Delete workflow {fw_id} from LaunchPad")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -454,10 +457,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    jrm_manager = JrmManager()
+
     if args.action == "add_wf":
-        add_jrm()
+        jrm_manager.add_jrm()
     elif args.action == "delete_wf":
         if args.fw_id is None:
             print("Please provide a Firework ID to delete")
         else:
-            delete_jrm(args.fw_id)
+            jrm_manager.delete_jrm(args.fw_id)
