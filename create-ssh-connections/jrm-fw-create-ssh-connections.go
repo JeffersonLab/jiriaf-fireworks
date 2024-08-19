@@ -14,6 +14,7 @@ import (
     "time"
     "bufio"
     "strings"
+    "encoding/json"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,32 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
     }
     fmt.Fprintf(w, `{"error": "No available port found"}`)
 }
+
+
+func getAvailablePorts(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    ip := vars["ip"]
+    start, _ := strconv.Atoi(vars["start"])
+    end, _ := strconv.Atoi(vars["end"])
+
+    availablePorts := []int{}
+
+    for port := start; port <= end; port++ {
+        address := fmt.Sprintf("%s:%d", ip, port)
+        listener, err := net.Listen("tcp", address)
+        if err == nil {
+            listener.Close()
+            availablePorts = append(availablePorts, port)
+        }
+    }
+
+    if len(availablePorts) > 0 {
+        json.NewEncoder(w).Encode(map[string][]int{"ports": availablePorts})
+    } else {
+        fmt.Fprintf(w, `{"error": "No available ports found"}`)
+    }
+}
+
 
 var restartServer bool
 
