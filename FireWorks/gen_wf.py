@@ -4,10 +4,9 @@ from monty.serialization import loadfn
 import textwrap
 import requests, json, logging
 import argparse
-
-
-
 import concurrent.futures
+import uuid
+
 
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 LOG_PATH = '/fw/logs/'
@@ -384,9 +383,8 @@ class JrmManager:
         available_custom_metrics_ports = ssh.request_available_ports(20000, 49999)["ports"]
         for node_index in range(slurm.nodes):
             print("====================================")
-            # unique timestamp for each node
-            timestamp = str(int(time.time()))
-            nodename = f"{jrm.nodename}-{timestamp}"
+            unique_id = str(uuid.uuid4())[:8]
+            nodename = f"{jrm.nodename}-{unique_id}"
 
             remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
             print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
