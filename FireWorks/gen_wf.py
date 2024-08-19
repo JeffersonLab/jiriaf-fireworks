@@ -96,6 +96,15 @@ class Ssh:
         else:
             return None
     
+    def request_available_ports(self, start, end, ip="127.0.0.1"):
+        url = f"http://172.17.0.1:8888/get_ports/{ip}/{start}/{end}"
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+
     def connect_db(self):
         # send the cmd to REST API server listening 8888
         cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
@@ -163,7 +172,7 @@ class Task:
         self.ssh_metrics_cmds = []
         self.ssh_custom_metrics_cmds = []
 
-    def get_remote_ssh_cmds(self, nodename):
+    def get_remote_ssh_cmds(self, nodename, available_kubelet_ports, available_custom_metrics_ports):
         """
         This function do three things:
         1. Request available port for kubelet and custom metrics ports
@@ -171,8 +180,11 @@ class Task:
         3. Run SSH tunneling commands on the local server, including kubelet port and custom metrics ports.
         """
 
-        respons = self.ssh.request_available_port(10000, 19999)
-        kubelet_port = respons['port']
+    
+        # get the smallest available port for kubelet
+        kubelet_port = available_kubelet_ports[0]
+        # update the available ports
+        available_kubelet_ports.remove(kubelet_port)
         self.jrm_ports.append(kubelet_port)
 
       
@@ -183,13 +195,14 @@ class Task:
         cmd = self.ssh.connect_metrics_server(kubelet_port, nodename)
         self.ssh_metrics_cmds.append(cmd)
         print(f"Node {nodename} is running on port {kubelet_port}")
-        time.sleep(1)
+        # time.sleep(1)
 
         
         # Function to handle SSH command execution
         def execute_ssh_command(ssh, port, nodename):
-            response = ssh.request_available_port(20000, 49999)
-            mapped_port = response['port']
+            mapped_port = available_custom_metrics_ports[0]
+            available_custom_metrics_ports.remove(mapped_port)
+
             command = f"ssh -NfR {mapped_port}:localhost:{port} {ssh.remote}"
             self.dict_mapped_custom_metrics_ports[mapped_port] = port
             cmd = ssh.connect_custom_metrics(mapped_port, port, nodename)
@@ -199,12 +212,11 @@ class Task:
         
         # If custom metrics ports are defined
         if self.jrm.custom_metrics_ports:
-            commands = []
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = [executor.submit(execute_ssh_command, self.ssh, port, nodename) for port in self.jrm.custom_metrics_ports]
                 for future in concurrent.futures.as_completed(futures):
                     commands.append(future.result())
-                    time.sleep(1)
+                    # time.sleep(1)
                         
         return "; ".join(commands), kubelet_port
 
@@ -346,7 +358,7 @@ class JrmManager:
             print(f"Delete workflow {fw_id} from Launch Pad")
             LPAD.delete_wf(int(fw_id))
 
-        time.sleep(3)
+        # time.sleep(3)
         
         # run db, apiserver ssh
         print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
@@ -368,14 +380,17 @@ class JrmManager:
             print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
 
         tasks, nodenames = [], []
+        available_kubelet_ports = ssh.request_available_ports(10000, 19999)["ports"]
+        available_custom_metrics_ports = ssh.request_available_ports(20000, 49999)["ports"]
         for node_index in range(slurm.nodes):
+            print("====================================")
             # unique timestamp for each node
             timestamp = str(int(time.time()))
             nodename = f"{jrm.nodename}-{timestamp}"
 
-            remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename)
-
+            remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
             print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
+            print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
             tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
