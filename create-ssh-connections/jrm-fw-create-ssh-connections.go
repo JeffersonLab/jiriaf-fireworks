@@ -152,6 +152,7 @@ func main() {
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
     r.HandleFunc("/run", runCommand).Methods("POST")
     r.HandleFunc("/check_port/{ip}/{port:[0-9]+}", checkPort).Methods("GET")
+    r.HandleFunc("/get_ports/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePorts).Methods("GET")
     
     // Create a channel to receive OS signals
     c := make(chan os.Signal, 1)

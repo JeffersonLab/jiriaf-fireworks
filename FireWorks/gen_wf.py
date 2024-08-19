@@ -5,6 +5,10 @@ import textwrap
 import requests, json, logging
 import argparse
 
+
+
+import concurrent.futures
+
 LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml')
 LOG_PATH = '/fw/logs/'
 
@@ -181,20 +185,26 @@ class Task:
         print(f"Node {nodename} is running on port {kubelet_port}")
         time.sleep(1)
 
+        
+        # Function to handle SSH command execution
+        def execute_ssh_command(ssh, port, nodename):
+            response = ssh.request_available_port(20000, 49999)
+            mapped_port = response['port']
+            command = f"ssh -NfR {mapped_port}:localhost:{port} {ssh.remote}"
+            self.dict_mapped_custom_metrics_ports[mapped_port] = port
+            cmd = ssh.connect_custom_metrics(mapped_port, port, nodename)
+            self.ssh_custom_metrics_cmds.append(cmd)
+            print(f"Node {nodename} is exposing custom metrics port {port} on port {mapped_port}")
+            return command
+        
         # If custom metrics ports are defined
-        if self.jrm.custom_metrics_ports:            
-            # For each custom metrics port, create an SSH reverse tunneling command
-            for port in self.jrm.custom_metrics_ports:
-                # Request an available port in the range 20000-40000
-                response = self.ssh.request_available_port(20000, 49999)
-                mapped_port = response['port']
-
-                commands.append(f"ssh -NfR {mapped_port}:localhost:{port} {self.ssh.remote}")
-                self.dict_mapped_custom_metrics_ports[mapped_port] = port
-                cmd = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
-                self.ssh_custom_metrics_cmds.append(cmd)
-                print(f"Node {nodename} is exposing custom metrics port {port} on port {mapped_port}")
-                time.sleep(1)
+        if self.jrm.custom_metrics_ports:
+            commands = []
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(execute_ssh_command, self.ssh, port, nodename) for port in self.jrm.custom_metrics_ports]
+                for future in concurrent.futures.as_completed(futures):
+                    commands.append(future.result())
+                    time.sleep(1)
                         
         return "; ".join(commands), kubelet_port
 
@@ -336,7 +346,7 @@ class JrmManager:
             print(f"Delete workflow {fw_id} from Launch Pad")
             LPAD.delete_wf(int(fw_id))
 
-        time.sleep(5)
+        time.sleep(3)
         
         # run db, apiserver ssh
         print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
