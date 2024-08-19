@@ -179,7 +179,7 @@ class Task:
         cmd = self.ssh.connect_metrics_server(kubelet_port, nodename)
         self.ssh_metrics_cmds.append(cmd)
         print(f"Node {nodename} is running on port {kubelet_port}")
-        time.sleep(5)
+        time.sleep(1)
 
         # If custom metrics ports are defined
         if self.jrm.custom_metrics_ports:            
@@ -194,7 +194,7 @@ class Task:
                 cmd = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
                 self.ssh_custom_metrics_cmds.append(cmd)
                 print(f"Node {nodename} is exposing custom metrics port {port} on port {mapped_port}")
-                time.sleep(5)
+                time.sleep(1)
                         
         return "; ".join(commands), kubelet_port
 
