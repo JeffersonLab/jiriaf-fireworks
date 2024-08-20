@@ -7,12 +7,13 @@ function display_help {
     echo "  add_wf       Add a workflow to the launchpad. Requires environment variables to be set."
     echo "  get_wf       Get workflows from the launchpad"
     echo "  delete_wf    Delete workflows from the launchpad. Requires an additional argument for the workflow id."
+    echo "  delete_ports Delete ports from the launchpad. Requires an additional argument for the start and end ports."
     exit 0
 }
 
 # Define a function to handle invalid arguments
 function handle_invalid_arg {
-    echo "Invalid argument. Please use add_wf, get_wf, or delete_wf."
+    echo "Invalid argument. Please use add_wf, get_wf, delete_wf, or delete_ports."
     display_help
     exit 1
 }
@@ -33,6 +34,9 @@ case "$1" in
         ;;
     delete_wf)
         python /fw/gen_wf.py delete_wf --fw_id $2
+        ;;
+    delete_ports)
+        python /fw/gen_wf.py delete_ports --start $2 --end $3
         ;;
     *)
         handle_invalid_arg
