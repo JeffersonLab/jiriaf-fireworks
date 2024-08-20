@@ -344,6 +344,7 @@ class MangagePorts:
             print(f"Error: {e}")
             return
         
+        print(f"Delete nodes {self.to_delete_knodes}, check the log at {LOG_PATH}delete_nodes_logger.log")
         response = Ssh.send_command(cmd)
         response['cmd'] = cmd
         response['nodes'] = self.to_delete_knodes
