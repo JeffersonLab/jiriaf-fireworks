@@ -337,59 +337,61 @@ class MangagePorts:
         logger.log(response)
 
 class JrmManager:
-    def launch_jrm_script(self):
-        slurm = Slurm()
-        jrm = Jrm()
-        ssh = Ssh()
-        
-        task = Task(slurm, jrm, ssh)
+    def __init__(self):
+        self.slurm = Slurm()
+        self.jrm = Jrm()
+        self.ssh = Ssh()
+        self.task = Task(self.slurm, self.jrm, self.ssh)
 
+        self.manage_ports = MangagePorts()
+
+        self.available_kubelet_ports = self.ssh.request_available_ports(10000, 19999)["ports"]
+        self.available_custom_metrics_ports = self.ssh.request_available_ports(20000, 49999)["ports"]
+
+    def launch_jrm_script(self):
         # check and delete the ports used by the completed and lost fireworks on local
-        manage_ports = MangagePorts()
-        manage_ports.find_ports_from_lpad()
-        print(f"Found used ports: {manage_ports.to_delete_ports}")
-        manage_ports.delete_ports()
-        manage_ports.delete_nodes()
-        print(f"Delete nodes: {manage_ports.to_delete_knodes}")
+        self.manage_ports.find_ports_from_lpad()
+        print(f"Found used ports: {self.manage_ports.to_delete_ports}")
+        self.manage_ports.delete_ports()
+        self.manage_ports.delete_nodes()
+        print(f"Delete nodes: {self.manage_ports.to_delete_knodes}")
 
         # delete wf from LaunchPad
-        for fw_id in set(manage_ports.to_delete_fw_ids):
+        for fw_id in set(self.manage_ports.to_delete_fw_ids):
             print(f"Delete workflow {fw_id} from Launch Pad")
             LPAD.delete_wf(int(fw_id))
 
         # time.sleep(3)
         
         # run db, apiserver ssh
-        print(f"Connect to db and apiserver via \n ssh_key: {ssh.ssh_key}, remote: {ssh.remote}, remote_proxy: {ssh.remote_proxy}")
-        ssh_db = ssh.connect_db()
+        print(f"Connect to db and apiserver via \n ssh_key: {self.ssh.ssh_key}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}")
+        ssh_db = self.ssh.connect_db()
         if "error" in ssh_db:
             print(f"Error in connecting to db. Check the log at {LOG_PATH}connect_db_logger.log")
             return None
         
-        ssh_apiserver = ssh.connect_apiserver(jrm.apiserver_port)
+        ssh_apiserver = self.ssh.connect_apiserver(self.jrm.apiserver_port)
         if "error" in ssh_apiserver:
             print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
             return None
 
         # check if vkubelet_pod_ips is greater than nodes
-        if len(jrm.vkubelet_pod_ips) < slurm.nodes:
-            print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {jrm.vkubelet_pod_ips}, nodes: {slurm.nodes}")
+        if len(self.jrm.vkubelet_pod_ips) < self.slurm.nodes:
+            print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {self.jrm.vkubelet_pod_ips}, nodes: {self.slurm.nodes}")
             # extend vkubelet_pod_ips to nodes with the first ip
-            jrm.vkubelet_pod_ips.extend([jrm.vkubelet_pod_ips[0]] * (slurm.nodes - len(jrm.vkubelet_pod_ips)))
-            print(f"Extend vkubelet_pod_ips to {jrm.vkubelet_pod_ips}")
+            self.jrm.vkubelet_pod_ips.extend([self.jrm.vkubelet_pod_ips[0]] * (self.slurm.nodes - len(self.jrm.vkubelet_pod_ips)))
+            print(f"Extend vkubelet_pod_ips to {self.jrm.vkubelet_pod_ips}")
 
         tasks, nodenames = [], []
-        available_kubelet_ports = ssh.request_available_ports(10000, 19999)["ports"]
-        available_custom_metrics_ports = ssh.request_available_ports(20000, 49999)["ports"]
-        for node_index in range(slurm.nodes):
+        for node_index in range(self.slurm.nodes):
             print("====================================")
             unique_id = str(uuid.uuid4())[:8]
-            nodename = f"{jrm.nodename}-{unique_id}"
+            nodename = f"{self.jrm.nodename}-{unique_id}"
 
-            remote_ssh_cmds, kubelet_port = task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
-            print(f"Node {nodename} is using ip {jrm.vkubelet_pod_ips[node_index]}")
+            remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, self.available_kubelet_ports, self.available_custom_metrics_ports)
+            print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
             print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
-            script = task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, jrm.vkubelet_pod_ips[node_index])
+            script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
             tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
             nodenames.append(nodename)
