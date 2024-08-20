@@ -75,8 +75,8 @@ class Ssh:
         self.remote_proxy = self.node_config["ssh"]["remote_proxy"]
         self.ssh_key = self.node_config["ssh"]["ssh_key"]
 
-    @staticmethod
-    def send_command(command):
+    @classmethod
+    def send_command(cls, command):
         url = "http://172.17.0.1:8888/run"
         data = {'command': command}
         response = requests.post(url, data=data)  # Use data instead of json
