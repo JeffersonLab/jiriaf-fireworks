@@ -327,7 +327,7 @@ class MangagePorts:
     def delete_ports(self):
         # send the cmd to REST API server listening 8888 to delete the ports
         for port, fw_id in zip(self.to_delete_ports, self.to_delete_fw_ids):
-            print(f"Delete port {port} used by fw_id {fw_id}")
+            print(f"Delete port {port} used by fw_id {fw_id}, check the log at {LOG_PATH}delete_ports_logger.log")
             cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
             response = Ssh.send_command(cmd)
             response['cmd'] = cmd
