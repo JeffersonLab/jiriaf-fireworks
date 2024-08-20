@@ -399,47 +399,47 @@ class JrmManager:
         exec_task = ScriptTask.from_str(f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'")
         tasks.append(exec_task)
 
-        fw = Firework(tasks, name=f"{jrm.site}_{nodename}")
+        fw = Firework(tasks, name=f"{self.jrm.site}_{nodename}")
 
-        fw.spec["_category"] = jrm.site
+        fw.spec["_category"] = self.jrm.site
 
-        pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {ssh.remote}"
+        pre_rocket_string = f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh.remote}"
 
         queueadapter = {
-            "job_name": f"{jrm.site}_{nodename}",
-            "walltime": slurm.walltime,
-            "qos": slurm.qos,
-            "nodes": slurm.nodes,
-            "account": slurm.account,
-            "constraint": slurm.constraint,
+            "job_name": f"{self.jrm.site}_{nodename}",
+            "walltime": self.slurm.walltime,
+            "qos": self.slurm.qos,
+            "nodes": self.slurm.nodes,
+            "account": self.slurm.account,
+            "constraint": self.slurm.constraint,
             "pre_rocket": pre_rocket_string,
         }
-        if slurm.reservation:
-            queueadapter["reservation"] = slurm.reservation
+        if self.slurm.reservation:
+            queueadapter["reservation"] = self.slurm.reservation
 
         fw.spec["_queueadapter"] = queueadapter
 
         fw.spec["jrms_info"] = {
             "nodenames": nodenames,
-            "jrm_ports": task.jrm_ports,
-            "apiserver_port": jrm.apiserver_port,
-            "kubeconfig": jrm.kubeconfig,
-            "control_plane_ip": jrm.control_plane_ip,
-            "vkubelet_pod_ips": jrm.vkubelet_pod_ips,
-            "site": jrm.site,
-            "image": jrm.image,
-            "mapped_custom_metrics_ports": {str(k): str(v) for k, v in task.dict_mapped_custom_metrics_ports.items()}
+            "jrm_ports": self.task.jrm_ports,
+            "apiserver_port": self.jrm.apiserver_port,
+            "kubeconfig": self.jrm.kubeconfig,
+            "control_plane_ip": self.jrm.control_plane_ip,
+            "vkubelet_pod_ips": self.jrm.vkubelet_pod_ips,
+            "site": self.jrm.site,
+            "image": self.jrm.image,
+            "mapped_custom_metrics_ports": {str(k): str(v) for k, v in self.task.dict_mapped_custom_metrics_ports.items()}
         }
 
         fw.spec["ssh_info"] = {
-            "ssh_metrics": task.ssh_metrics_cmds,
+            "ssh_metrics": self.task.ssh_metrics_cmds,
             "ssh_db": ssh_db,
             "ssh_apiserver": ssh_apiserver,
-            "ssh_custom_metrics": task.ssh_custom_metrics_cmds
+            "ssh_custom_metrics": self.task.ssh_custom_metrics_cmds
         }
 
         wf = Workflow([fw], {fw: []})
-        wf.name = f"{jrm.site}_{nodename}"
+        wf.name = f"{self.jrm.site}_{nodename}"
         return wf
 
     def add_jrm(self):
@@ -452,7 +452,8 @@ class JrmManager:
         LPAD.add_wf(wf)
         print(f"Add workflow {wf.name} to LaunchPad")
 
-    def delete_jrm(self, fw_id):
+    @classmethod
+    def delete_jrm(cls, fw_id):
         manage_ports = MangagePorts()
         manage_ports.find_ports_from_fw_id(fw_id)
         manage_ports.delete_ports()
@@ -470,12 +471,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    jrm_manager = JrmManager()
 
     if args.action == "add_wf":
+        jrm_manager = JrmManager()
         jrm_manager.add_jrm()
     elif args.action == "delete_wf":
         if args.fw_id is None:
             print("Please provide a Firework ID to delete")
         else:
-            jrm_manager.delete_jrm(args.fw_id)
+            JrmManager.delete_jrm(args.fw_id)
