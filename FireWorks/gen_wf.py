@@ -360,8 +360,8 @@ class JrmManager:
 
         self.manage_ports = MangagePorts()
 
-        self.available_kubelet_ports = self.ssh.request_available_ports(10000, 19999)["ports"]
-        self.available_custom_metrics_ports = self.ssh.request_available_ports(20000, 49999)["ports"]
+        self.available_kubelet_ports = Ssh.request_available_ports(10000, 19999)["ports"]
+        self.available_custom_metrics_ports = Ssh.request_available_ports(20000, 49999)["ports"]
 
     def launch_jrm_script(self):
         # check and delete the ports used by the completed and lost fireworks on local
