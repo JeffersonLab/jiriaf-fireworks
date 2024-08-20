@@ -14,7 +14,7 @@ import (
     "time"
     "bufio"
     "strings"
-    "encoding/json"
+	"encoding/json"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +34,9 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
     }
     fmt.Fprintf(w, `{"error": "No available port found"}`)
 }
+
+
+
 
 
 func getAvailablePorts(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +62,7 @@ func getAvailablePorts(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, `{"error": "No available ports found"}`)
     }
 }
+
 
 
 var restartServer bool
@@ -112,7 +116,7 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
             // fmt.Println(line)
         }
     }()
-    
+
     // Use a select statement to wait for the command to finish or for the context to timeout
     select {
     case <-ctx.Done():
@@ -131,29 +135,19 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-// write a new http route for checking if port is open or not
-func checkPort(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    ip := vars["ip"]
-    port, _ := strconv.Atoi(vars["port"])
-
-    address := fmt.Sprintf("%s:%d", ip, port)
-    listener, err := net.Listen("tcp", address)
-    if err == nil {
-        listener.Close()
-        fmt.Fprintf(w, `{"status": "Port %d is open"}`, port)
-    } else {
-        fmt.Fprintf(w, `{"status": "Port %d is closed"}`, port)
-    }
+// add a function to return a message when the address localhost:8888 is accessed
+func homePage(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "This application is for building SSH connections.")// write a message to the web page
+    fmt.Println("This application is for building SSH connections.")// write a message to the console
 }
 
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
+	r.HandleFunc("/get_ports/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePorts).Methods("GET")
     r.HandleFunc("/run", runCommand).Methods("POST")
-    r.HandleFunc("/check_port/{ip}/{port:[0-9]+}", checkPort).Methods("GET")
-    r.HandleFunc("/get_ports/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePorts).Methods("GET")
-    
+    r.HandleFunc("/", homePage)
+
     // Create a channel to receive OS signals
     c := make(chan os.Signal, 1)
     // Notify the channel for SIGINT signals
