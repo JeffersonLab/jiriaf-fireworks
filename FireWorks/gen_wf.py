@@ -108,7 +108,13 @@ class Ssh:
 
     def connect_db(self):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" 
+        cmd = f"""
+        if ! pgrep -f "ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}" > /dev/null; then
+            ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR 27017:localhost:27017 {self.remote}
+        else
+            echo "SSH command is already running."
+        fi
+        """
         response = Ssh.send_command(cmd)
         # write response to log
         logger = Logger('connect_db_logger')
