@@ -129,7 +129,13 @@ class Ssh:
 
     def connect_apiserver(self, apiserver_port):
         # send the cmd to REST API server listening 8888
-        cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" 
+        cmd = f"""
+        if ! pgrep -f "ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}" > /dev/null; then
+            ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {apiserver_port}:localhost:{apiserver_port} {self.remote}
+        else
+            echo "SSH command is already running."
+        fi
+        """
         response = Ssh.send_command(cmd)
         logger = Logger('connect_apiserver_logger')
         # add cmd to response for record
