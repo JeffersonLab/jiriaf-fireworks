@@ -478,6 +478,16 @@ class JrmManager:
         print(f"Delete workflow {fw_id} from LaunchPad")
 
 
+    @classmethod
+    def delete_ports(cls, start, end):
+        # Define the one-liner bash command
+        command = f"for port in $(seq {start} {end}); do pid=$(lsof -t -i:$port); if [ -n \"$pid\" ]; then echo \"Killing process on port $port with PID $pid\"; kill -9 $pid; else echo \"No process running on port $port\"; fi; done"
+        print(f"Delete ports from {start} to {end}, check the log at {LOG_PATH}delete_ports_logger.log")
+        # Run the bash command using SSH.send_command
+        response = Ssh.send_command(command)
+        logger = Logger('delete_ports_logger')
+        logger.log(response)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
