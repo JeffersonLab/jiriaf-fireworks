@@ -86,7 +86,8 @@ class Ssh:
         else:
             return None
         
-    def request_available_port(self, start, end, ip="127.0.0.1"):
+    @classmethod
+    def request_available_port(cls, start, end, ip="127.0.0.1"):
         url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
         response = requests.get(url)
 
