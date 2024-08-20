@@ -14,6 +14,7 @@ import (
     "time"
     "bufio"
     "strings"
+	"encoding/json"
 )
 
 func getAvailablePort(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,36 @@ func getAvailablePort(w http.ResponseWriter, r *http.Request) {
     }
     fmt.Fprintf(w, `{"error": "No available port found"}`)
 }
+
+
+
+
+
+func getAvailablePorts(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    ip := vars["ip"]
+    start, _ := strconv.Atoi(vars["start"])
+    end, _ := strconv.Atoi(vars["end"])
+
+    availablePorts := []int{}
+
+    for port := start; port <= end; port++ {
+        address := fmt.Sprintf("%s:%d", ip, port)
+        listener, err := net.Listen("tcp", address)
+        if err == nil {
+            listener.Close()
+            availablePorts = append(availablePorts, port)
+        }
+    }
+
+    if len(availablePorts) > 0 {
+        json.NewEncoder(w).Encode(map[string][]int{"ports": availablePorts})
+    } else {
+        fmt.Fprintf(w, `{"error": "No available ports found"}`)
+    }
+}
+
+
 
 var restartServer bool
 
@@ -104,10 +135,18 @@ func runCommand(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+// add a function to return a message when the address localhost:8888 is accessed
+func homePage(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "This application is for building SSH connections.")// write a message to the web page
+    fmt.Println("This application is for building SSH connections.")// write a message to the console
+}
+
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/get_port/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePort).Methods("GET")
+	r.HandleFunc("/get_ports/{ip}/{start:[0-9]+}/{end:[0-9]+}", getAvailablePorts).Methods("GET")
     r.HandleFunc("/run", runCommand).Methods("POST")
+    r.HandleFunc("/", homePage)
 
     // Create a channel to receive OS signals
     c := make(chan os.Signal, 1)

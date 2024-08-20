@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Check if each variable is set and print a message if it's not
-if [ -z "$nnodes" ]; then
-    echo "The nnodes variable is not set."
+if [ -z "$nodes" ]; then
+    echo "The nodes variable is not set."
     exit 1
 fi
-if [ -z "$nodetype" ]; then
-    echo "The nodetype variable is not set."
+if [ -z "$constraint" ]; then
+    echo "The constraint variable is not set."
     exit 1
 fi
 if [ -z "$walltime" ]; then
@@ -58,6 +58,13 @@ if [ -z "$jrm_image" ]; then
     exit 1
 fi
 
+# if reservation is set, set the reservation as a yaml {reservation: $reservation} otherwise set it to an empty string
+if [ -n "$reservation" ]; then
+    reservation_yaml="reservation: $reservation"
+else
+    reservation_yaml=""
+fi
+
 # Convert the space-separated string into a YAML list if it's set and not an empty string
 if [ -n "$custom_metrics_ports" ] && [ "$custom_metrics_ports" != "" ]; then
     custom_metrics_ports_yaml=$(for port in $custom_metrics_ports; do echo "    - $port"; done)
@@ -80,11 +87,12 @@ fi
 
 cat << EOF > /fw/node-config.yaml
 slurm:
-    nnodes: ${nnodes}
-    nodetype: ${nodetype}
+    nodes: ${nodes}
+    constraint: ${constraint}
     walltime: ${walltime}
     qos: ${qos}
     account: ${account} #m4637 - jiriaf or m3792 - nersc
+    $reservation_yaml
 
 jrm:
     nodename: ${nodename}
