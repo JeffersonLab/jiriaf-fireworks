@@ -491,8 +491,10 @@ class JrmManager:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["add_wf", "delete_wf"], help="Action to perform")
+    parser.add_argument("action", choices=["add_wf", "delete_wf", "delete_ports"], help="Action to perform")
     parser.add_argument("--fw_id", help="Firework ID to delete")
+    parser.add_argument("--start", type=int, help="Start port to delete")
+    parser.add_argument("--end", type=int, help="End port to delete")
 
     args = parser.parse_args()
 
@@ -505,3 +507,8 @@ if __name__ == "__main__":
             print("Please provide a Firework ID to delete")
         else:
             JrmManager.delete_jrm(args.fw_id)
+    elif args.action == "delete_ports":
+        if args.start is None or args.end is None:
+            print("Please provide start and end ports to delete")
+        else:
+            JrmManager.delete_ports(args.start, args.end)
