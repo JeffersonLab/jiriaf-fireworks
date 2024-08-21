@@ -7,7 +7,7 @@ slurm:
   reservation:
 
 jrm:
-  nodename: vk-ornl
+  nodename: jrm-ornl
   site: ornl
   control_plane_ip: jiriaf2302
   apiserver_port: 38687
@@ -15,11 +15,11 @@ jrm:
   image: docker:jlabtsai/vk-cmd:main
   vkubelet_pod_ips:
     - 172.17.0.1
-  custom_metrics_ports: []
+  custom_metrics_ports: [2221, 1776, 8088, 2222]
 
 ssh:
-  remote_proxy: none
+  remote_proxy:
   remote: 172.30.161.5
-  ssh_key: none
+  ssh_key:
   password: cGFzc3dvcmQK
   build_script: ./build-ssh-ornl.sh
