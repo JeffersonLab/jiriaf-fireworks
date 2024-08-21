@@ -137,13 +137,13 @@ class PerlmutterJrmManager(BaseJrmManager):
         return 3
 
     def get_connection_info(self):
-        return f"ssh_key: {self.ssh.base_ssh.ssh_key}, remote: {self.ssh.base_ssh.remote}, remote_proxy: {self.ssh.base_ssh.remote_proxy}"
+        return f"ssh_key: {self.ssh.ssh_key}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
 
     def get_exec_task_cmd(self, nodenames):
         return f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'"
 
     def get_pre_rocket_string(self):
-        return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh.base_ssh.remote}"
+        return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh.remote}"
 
 
 class OrnlJrmManager(BaseJrmManager):
@@ -154,14 +154,14 @@ class OrnlJrmManager(BaseJrmManager):
         return 5
 
     def get_connection_info(self):
-        return f"password: {self.ssh.base_ssh.password}, remote: {self.ssh.base_ssh.remote}, remote_proxy: {self.ssh.base_ssh.remote_proxy}"
+        return f"password: {self.ssh.password}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
 
     def get_exec_task_cmd(self, nodenames):
         return f"for nodename in {' '.join(nodenames)}; do srun --cpu-bind=none --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'"
 
     def get_pre_rocket_string(self):
-        decoded_password = base64.b64decode(self.ssh.base_ssh.password).decode('utf-8')
+        decoded_password = base64.b64decode(self.ssh.password).decode('utf-8')
         return f"""
         conda activate fireworks
-        expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh.base_ssh.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
+        expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
         """
