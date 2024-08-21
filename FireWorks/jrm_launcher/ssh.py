@@ -101,7 +101,7 @@ class PerlmutterSsh(BaseSsh):
             cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
 
         # Check if the command is already running and if not, run it
-        return f"{cmd}"
+        return cmd
 
 
 class OrnlSsh(BaseSsh):
@@ -114,8 +114,8 @@ class OrnlSsh(BaseSsh):
             cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
         else:
             cmd = orig_cmd
-        return f"{cmd}"
-
+        return cmd
+    
 
 class SshManager:
     def __init__(self, site_name, config_file):
