@@ -34,40 +34,19 @@ class Tool:
             return None
 
 class BaseSsh:
-    def __init__(self, config_file, site_config=None):
+    def __init__(self, config_file):
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
 
-        self.site_config = site_config or {}
         self.remote = self.node_config["ssh"].get("remote")
         self.remote_proxy = self.node_config["ssh"].get("remote_proxy")
         self.ssh_key = self.node_config["ssh"].get("ssh_key")
         self.build_ssh_script = self.node_config["ssh"].get("build_script")
         self.password = self.node_config["ssh"].get("password")
 
-        # Site-specific command builder
-        self.command_builder = self.site_config.get("command_builder", self.default_command_builder)
-
-    def default_command_builder(self, port, reverse_tunnel, nohup):
-        """
-        Default command builder for SSH key-based authentication.
-        """
-        if not self.ssh_key or not self.remote or not self.remote_proxy:
-            raise ValueError("Missing SSH configuration parameters for default command builder.")
-
-        if reverse_tunnel:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {port}:localhost:{port} {self.remote}"
-        else:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
-        return cmd
-
     def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
-        """
-        This method uses the command_builder to create SSH commands, 
-        allowing site-specific customization.
-        """
-        return self.command_builder(port, reverse_tunnel, nohup)
+        raise NotImplementedError("Subclasses should implement this method.")
 
     def _log_response(self, response, logger_name, cmd, port, nodename=None):
         logger = Logger(logger_name)
@@ -111,67 +90,51 @@ class BaseSsh:
         return response
 
 
-class SshManager:
-    def __init__(self, site_name, config_file):
-        site_configs = {
-            "perlmutter": {
-                "command_builder": self.perlmutter_command_builder
-            },
-            "ornl": {
-                "command_builder": self.ornl_command_builder
-            },
-            # Add additional sites here as needed
-        }
-
-        if site_name not in site_configs:
-            raise ValueError(f"Site {site_name} is not supported. Please configure it in the site_configs.")
-
-        site_config = site_configs[site_name]
-        self.base_ssh = BaseSsh(config_file=config_file, site_config=site_config)
-
-    def perlmutter_command_builder(self, port, reverse_tunnel, nohup):
-        """
-        Custom command builder for the Perlmutter site.
-        """
-        ssh_key = self.base_ssh.ssh_key
-        remote_proxy = self.base_ssh.remote_proxy
-        remote = self.base_ssh.remote
-
-        if not ssh_key or not remote_proxy or not remote:
+class PerlmutterSsh(BaseSsh):
+    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
+        if not self.ssh_key or not self.remote_proxy or not self.remote:
             raise ValueError("Missing SSH parameters for Perlmutter site.")
 
         if reverse_tunnel:
-            return f"ssh -i {ssh_key} -J {remote_proxy} -NfR {port}:localhost:{port} {remote}"
+            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {port}:localhost:{port} {self.remote}"
         else:
-            return f"ssh -i {ssh_key} -J {remote_proxy} -NfL *:{port}:localhost:{port} {remote}"
+            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
 
-    def ornl_command_builder(self, port, reverse_tunnel, nohup):
-        """
-        Custom command builder for the ORNL site with password-based authentication.
-        """
-        build_ssh_script = self.base_ssh.build_ssh_script
-        password = self.base_ssh.password
-        print(f"build_ssh_script: {build_ssh_script}, password: {password}")
-        if not build_ssh_script or not password:
+        # Check if the command is already running and if not, run it
+        return f"{cmd}"
+
+
+class OrnlSsh(BaseSsh):
+    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
+        if not self.build_ssh_script or not self.password:
             raise ValueError("Missing SSH parameters for ORNL site.")
 
-        cmd = f"{build_ssh_script} {port} {str(reverse_tunnel).lower()} {password}"
+        orig_cmd = f"{self.build_ssh_script} {port} {str(reverse_tunnel).lower()} {self.password}"
         if nohup:
-            cmd = f"nohup {cmd} > /dev/null 2>&1 &"
-        return cmd
+            cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
+        else:
+            cmd = orig_cmd
+        return f"{cmd}"
 
-    def connect_db(self):
-        return self.base_ssh.connect_db()
 
-    def connect_apiserver(self, apiserver_port):
-        return self.base_ssh.connect_apiserver(apiserver_port)
+class SshManager:
+    def __init__(self, site_name, config_file):
+        self.ssh_instance = self.get_ssh_instance(site_name, config_file)
 
-    def connect_metrics_server(self, kubelet_port, nodename):
-        return self.base_ssh.connect_metrics_server(kubelet_port, nodename)
+    def get_ssh_instance(self, site_name, config_file):
+        if site_name == "perlmutter":
+            return PerlmutterSsh(config_file)
+        elif site_name == "ornl":
+            return OrnlSsh(config_file)
+        else:
+            raise ValueError(f"Site {site_name} is not supported.")
 
-    def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
-        return self.base_ssh.connect_custom_metrics(mapped_port, custom_metrics_port, nodename)
+    def __getattr__(self, name):
+        """
+        Dynamically delegate method calls to the underlying ssh_instance.
+        """
+        return getattr(self.ssh_instance, name)
 
 # Example usage:
-# ssh_manager = SshManager(site_name="perlmutter")
+# ssh_manager = SshManager(site_name="perlmutter", config_file="path/to/config.yaml")
 # ssh_manager.connect_db()
