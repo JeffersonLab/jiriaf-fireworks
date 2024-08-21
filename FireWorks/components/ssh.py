@@ -2,7 +2,6 @@ from monty.serialization import loadfn
 import requests, json
 
 from components.log import Logger
-from components import CONFIG_PATH
 
 class Tool:
     @classmethod
@@ -35,7 +34,7 @@ class Tool:
             return None
 
 class BaseSsh:
-    def __init__(self, config_file=CONFIG_PATH, site_config=None):
+    def __init__(self, config_file, site_config=None):
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
@@ -113,7 +112,7 @@ class BaseSsh:
 
 
 class SshManager:
-    def __init__(self, site_name, config_file=CONFIG_PATH):
+    def __init__(self, site_name, config_file):
         site_configs = {
             "perlmutter": {
                 "command_builder": self.perlmutter_command_builder

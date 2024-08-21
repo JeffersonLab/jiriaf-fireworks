@@ -1,0 +1,25 @@
+slurm:
+  nodes: 1
+  constraint: ejfat
+  walltime: 00:30:00
+  qos: normal
+  account: csc266
+  reservation:
+
+jrm:
+  nodename: vk-ornl
+  site: ornl
+  control_plane_ip: jiriaf2302
+  apiserver_port: 38687
+  kubeconfig: /ccsopen/home/jlabtsai/run-vk/kubeconfig/jiriaf2302
+  image: docker:jlabtsai/vk-cmd:main
+  vkubelet_pod_ips:
+    - 172.17.0.1
+  custom_metrics_ports: []
+
+ssh:
+  remote_proxy: none
+  remote: 172.30.161.5
+  ssh_key: none
+  password: cGFzc3dvcmQK
+  build_script: ./build-ssh-ornl.sh

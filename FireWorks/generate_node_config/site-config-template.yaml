@@ -1,0 +1,30 @@
+slurm:
+  nodes: {{nodes}}
+  constraint: {{constraint}}
+  walltime: {{walltime}}
+  qos: {{qos}}
+  account: {{account}}
+  {% if reservation %}reservation: {{reservation}}{% endif %}
+
+jrm:
+  nodename: {{nodename}}
+  site: {{site}}
+  control_plane_ip: {{control_plane_ip}}
+  apiserver_port: {{apiserver_port}}
+  kubeconfig: {{kubeconfig}}
+  image: {{image}}
+  {% if vkubelet_pod_ips %}vkubelet_pod_ips:
+  {% for ip in vkubelet_pod_ips %}
+    - {{ ip }}
+  {% endfor %}{% endif %}
+  {% if custom_metrics_ports %}custom_metrics_ports:
+  {% for port in custom_metrics_ports %}
+    - {{ port }}
+  {% endfor %}{% endif %}
+
+ssh:
+  remote_proxy: {{remote_proxy}}
+  remote: {{remote}}
+  ssh_key: {{key}}
+  {% if password %}password: {{password}}{% endif %}
+  {% if build_script %}build_script: {{build_script}}{% endif %}

@@ -2,19 +2,18 @@ import uuid
 import time
 import base64
 from fireworks import Workflow, Firework, ScriptTask
-from components import slurm, jrm
-from components.ssh import SshManager, Tool
+from components.ssh import Tool
 from components.task import TaskManager as Task
 from components.manage_port import MangagePorts
 
 from components import LPAD, LOG_PATH
 
 class BaseJrmManager:
-    def __init__(self):
-        self.slurm = slurm.ReadConfig()
-        self.jrm = jrm.ReadConfig()
-        self.ssh = None  # To be initialized in the subclass
-        self.task = None  # To be initialized in the subclass after SSH is set up
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
+        self.slurm = slurm_instance
+        self.jrm = jrm_instance
+        self.ssh = ssh_instance
+        self.task = Task(self.slurm, self.jrm, self.ssh) 
 
         self.manage_ports = MangagePorts()
 
@@ -131,10 +130,8 @@ class BaseJrmManager:
 
 
 class PerlmutterJrmManager(BaseJrmManager):
-    def __init__(self):
-        super().__init__()
-        self.ssh = SshManager("perlmutter")
-        self.task = Task(self.slurm, self.jrm, self.ssh)  # Initialize task after SSH is set up
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
+        super().__init__(slurm_instance, jrm_instance, ssh_instance)
 
     def get_sleep_time(self):
         return 3
@@ -150,10 +147,8 @@ class PerlmutterJrmManager(BaseJrmManager):
 
 
 class OrnlJrmManager(BaseJrmManager):
-    def __init__(self):
-        super().__init__()
-        self.ssh = SshManager("ornl")
-        self.task = Task(self.slurm, self.jrm, self.ssh)  # Initialize task after SSH is set up
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
+        super().__init__(slurm_instance, jrm_instance, ssh_instance)
 
     def get_sleep_time(self):
         return 5

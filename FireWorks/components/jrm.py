@@ -1,9 +1,8 @@
 from monty.serialization import loadfn
-from components import CONFIG_PATH
 
 
 class ReadConfig:
-    def __init__(self, config_file=CONFIG_PATH):
+    def __init__(self, config_file):
         self.node_config = loadfn(config_file) if config_file else {}
         if not self.node_config:
             raise ValueError("node-config.yaml is empty")
