@@ -119,9 +119,9 @@ class TaskManager:
 
     def get_site_strategy(self, site_type):
         if site_type == "perlmutter":
-            return PerlmutterStrategy(self)
+            return PerlmutterStrategy(self) # Pass TaskManager instance to the strategy
         elif site_type == "ornl":
-            return OrnlStrategy(self)
+            return OrnlStrategy(self) # Pass TaskManager instance to the strategy
         else:
             raise ValueError(f"Unsupported site type: {site_type}")
 
