@@ -1,8 +1,7 @@
 
 import logging
 
-
-from components import LOG_PATH
+from __init__ import LOG_PATH
 
 
 class Logger:

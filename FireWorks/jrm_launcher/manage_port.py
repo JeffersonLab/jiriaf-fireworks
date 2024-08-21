@@ -1,8 +1,8 @@
 
-from components.ssh import Tool
-from components.log import Logger
+from ssh import Tool
+from log import Logger
 
-from components import LPAD, LOG_PATH
+from __init__ import LPAD, LOG_PATH
 
 class MangagePorts:
     # inherit from Ssh class

@@ -1,7 +1,7 @@
 import argparse
-from components.log import Logger
-from components import LOG_PATH, LPAD
-from components import jrm, slurm, ssh, launch, manage_port
+from log import Logger
+from __init__ import LOG_PATH, LPAD
+import jrm, slurm, ssh, launch, manage_port
 
 class MainJrmManager:
     def __init__(self, config_file):

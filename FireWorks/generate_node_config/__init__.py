@@ -1,1 +1,0 @@
-SITE_CONFIG_TEMPLATE = '/fw/components/site-config-template.yaml'

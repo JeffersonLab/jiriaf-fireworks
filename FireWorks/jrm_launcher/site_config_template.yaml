@@ -1,0 +1,30 @@
+slurm:
+  nodes: {{int}}                 # Number of nodes, e.g., 1
+  constraint: {{str}}            # Constraint for SLURM, e.g., "cpu" or "ejfat"
+  walltime: {{str}}              # Walltime in HH:MM:SS format, e.g., "00:30:00"
+  qos: {{str}}                   # Quality of Service, e.g., "normal" or "debug"
+  account: {{str}}               # Account name, e.g., "m3792"
+  {% if reservation %}reservation: {{str}}{% endif %}  # Optional reservation, leave empty if not used
+
+jrm:
+  nodename: {{str}}              # The name of the node, e.g., "vk-ornl"
+  site: {{str}}                  # Site name, e.g., "ornl"
+  control_plane_ip: {{str}}      # Control plane IP, e.g., "jiriaf2302"
+  apiserver_port: {{int}}        # API server port, e.g., 38687
+  kubeconfig: {{str}}            # Path to the kubeconfig file, e.g., "/path/to/kubeconfig"
+  image: {{str}}                 # Docker image, e.g., "docker:jlabtsai/vk-cmd:main"
+  {% if vkubelet_pod_ips %}vkubelet_pod_ips:            # List of vkubelet pod IPs
+  {% for ip in vkubelet_pod_ips %}
+    - {{str}}                   # IP address, e.g., "172.17.0.1"
+  {% endfor %}{% endif %}
+  {% if custom_metrics_ports %}custom_metrics_ports:    # List of custom metrics ports
+  {% for port in custom_metrics_ports %}
+    - {{int}}                   # Port number, e.g., 1234
+  {% endfor %}{% endif %}
+
+ssh:
+  remote_proxy: {{str}}          # SSH remote proxy, e.g., "perlmutter" or "none"
+  remote: {{str}}                # SSH remote address, e.g., "jlabtsai@128.55.64.13"
+  ssh_key: {{str}}               # Path to SSH key, e.g., "$HOME/.ssh/nersc"
+  {% if password %}password: {{str}}{% endif %}         # Optional password, encoded in base64
+  {% if build_script %}build_script: {{str}}{% endif %} # Optional build script for SSH, e.g., "./build-ssh-ornl.sh"

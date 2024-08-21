@@ -2,18 +2,18 @@ import uuid
 import time
 import base64
 from fireworks import Workflow, Firework, ScriptTask
-from components.ssh import Tool
-from components.task import TaskManager as Task
-from components.manage_port import MangagePorts
+from ssh import Tool
+from task import TaskManager
+from manage_port import MangagePorts
 
-from components import LPAD, LOG_PATH
+from __init__ import LPAD, LOG_PATH
 
 class BaseJrmManager:
     def __init__(self, slurm_instance, jrm_instance, ssh_instance):
         self.slurm = slurm_instance
         self.jrm = jrm_instance
         self.ssh = ssh_instance
-        self.task = Task(self.slurm, self.jrm, self.ssh) 
+        self.task = TaskManager(self.slurm, self.jrm, self.ssh) 
 
         self.manage_ports = MangagePorts()
 

@@ -3,11 +3,11 @@ import base64
 import concurrent.futures
 
 class TaskManager:
-    def __init__(self, slurm_instance, jrm_instance, ssh_instance, site_type="perlmutter"):
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
         self.slurm = slurm_instance
         self.jrm = jrm_instance
         self.ssh = ssh_instance
-        self.site_type = site_type
+        self.site_type = jrm_instance.site
 
         self.jrm_ports = []
         self.dict_mapped_custom_metrics_ports = {}

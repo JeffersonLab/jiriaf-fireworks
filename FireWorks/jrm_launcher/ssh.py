@@ -1,7 +1,7 @@
 from monty.serialization import loadfn
 import requests, json
 
-from components.log import Logger
+from log import Logger
 
 class Tool:
     @classmethod
