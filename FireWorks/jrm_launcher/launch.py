@@ -17,9 +17,6 @@ class BaseJrmManager:
 
         self.manage_ports = MangagePorts()
 
-        self.available_kubelet_ports = Tool.request_available_ports(10000, 19999)["ports"]
-        self.available_custom_metrics_ports = Tool.request_available_ports(20000, 49999)["ports"]
-
     def launch_jrm_script(self):
         # Clean up ports and nodes
         self.manage_ports.find_ports_from_lpad()
@@ -50,13 +47,17 @@ class BaseJrmManager:
         # Ensure vkubelet_pod_ips length matches the number of nodes
         self.ensure_vkubelet_pod_ips()
 
+        # Generate available ports
+        available_kubelet_ports = Tool.request_available_ports(10000, 19999)["ports"]
+        available_custom_metrics_ports = Tool.request_available_ports(20000, 49999)["ports"]
+
         tasks, nodenames = [], []
         for node_index in range(self.slurm.nodes):
             print("====================================")
             unique_id = str(uuid.uuid4())[:8]
             nodename = f"{self.jrm.nodename}-{unique_id}"
 
-            remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, self.available_kubelet_ports, self.available_custom_metrics_ports)
+            remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
             print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
             print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
