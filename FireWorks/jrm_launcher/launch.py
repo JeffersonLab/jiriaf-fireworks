@@ -131,9 +131,6 @@ class BaseJrmManager:
 
 
 class PerlmutterJrmManager(BaseJrmManager):
-    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
-        super().__init__(slurm_instance, jrm_instance, ssh_instance)
-
     def get_sleep_time(self):
         return 3
 
@@ -148,9 +145,6 @@ class PerlmutterJrmManager(BaseJrmManager):
 
 
 class OrnlJrmManager(BaseJrmManager):
-    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
-        super().__init__(slurm_instance, jrm_instance, ssh_instance)
-
     def get_sleep_time(self):
         return 5
 
