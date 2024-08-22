@@ -146,7 +146,7 @@ class PerlmutterJrmManager(BaseJrmManager):
 
 class OrnlJrmManager(BaseJrmManager):
     def get_sleep_time(self):
-        return 5
+        return 3
 
     def get_connection_info(self):
         return f"password: {self.ssh.password}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
