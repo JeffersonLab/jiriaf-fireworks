@@ -60,7 +60,7 @@ class BaseJrmManager:
             print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
             print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
-            tasks.append(ScriptTask.from_str(f"cat << EOF > {nodename}.sh\n{script}\nEOF"))
+            tasks.append(ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
             nodenames.append(nodename)
 
