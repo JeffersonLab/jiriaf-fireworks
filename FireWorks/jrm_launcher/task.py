@@ -47,7 +47,7 @@ class SiteStrategy:
         return command
 
     def get_jrm_script(self, nodename, kubelet_port, ssh_cmds, vkubelet_pod_ip):
-        jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.task_manager.slurm.walltime.split(":")))) - 60
+        jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.task_manager.slurm.walltime.split(":"))))
         container_command = self.build_container_command(nodename)
 
         script = textwrap.dedent(f"""
@@ -61,8 +61,8 @@ class SiteStrategy:
             export JIRIAF_NODETYPE={self.task_manager.slurm.constraint}
             export JIRIAF_SITE={self.task_manager.jrm.site}
 
-            echo JRM: \$NODENAME is running on \$HOSTNAME with IP \$VKUBELET_POD_IP and port \$KUBELET_PORT
-            echo Walltime: \$JIRIAF_WALLTIME, nodetype: \$JIRIAF_NODETYPE, site: \$JIRIAF_SITE
+            echo JRM: $NODENAME is running on $HOSTNAME with IP $VKUBELET_POD_IP and port $KUBELET_PORT
+            echo Walltime: $JIRIAF_WALLTIME seconds, nodetype: $JIRIAF_NODETYPE, site: $JIRIAF_SITE
 
             {ssh_cmds}
 
@@ -71,10 +71,11 @@ class SiteStrategy:
 
             echo api-server: {self.task_manager.jrm.apiserver_port}, kubelet: {kubelet_port}
 
-            ./start.sh \$KUBECONFIG \$NODENAME \$VKUBELET_POD_IP \$KUBELET_PORT \$JIRIAF_WALLTIME \$JIRIAF_NODETYPE \$JIRIAF_SITE &
+            ./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE &
 
-            sleep \$JIRIAF_WALLTIME
-            echo "Walltime \$JIRIAF_WALLTIME is up. Stop the processes."
+            # sleep \$JIRIAF_WALLTIME
+            sleep $(echo $(squeue -h -j $SLURM_JOB_ID -o %L) | awk -F '[-:]' '{{if (NF==4) {{print ($1*86400) + ($2*3600) + ($3*60) + $4}} else if (NF==3) {{print ($1*3600) + ($2*60) + $3}} else {{print ($1*60) + $2}}}}')
+            # echo "Walltime \$JIRIAF_WALLTIME is up. Stop the processes."
             pkill -f "./start.sh"
         """)
         return script
