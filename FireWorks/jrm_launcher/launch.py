@@ -6,6 +6,7 @@ from ssh import Tool
 from task import TaskManager
 from manage_port import MangagePorts
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
 
 from __init__ import LPAD, LOG_PATH
 
@@ -48,9 +49,15 @@ class BaseJrmManager:
         # Ensure vkubelet_pod_ips length matches the number of nodes
         self.ensure_vkubelet_pod_ips()
 
-        # Generate available ports
-        available_kubelet_ports = Tool.request_available_ports(10000, 19999)["ports"]
-        available_custom_metrics_ports = Tool.request_available_ports(20000, 49999)["ports"]
+        # Generate available ports and convert them to queue objects
+        available_kubelet_ports = Queue()
+        available_custom_metrics_ports = Queue()
+
+        for port in Tool.request_available_ports(10000, 19999)["ports"]:
+            available_kubelet_ports.put(port)
+
+        for port in Tool.request_available_ports(20000, 49999)["ports"]:
+            available_custom_metrics_ports.put(port)
 
         tasks, nodenames = [], []
         # Use ThreadPoolExecutor to run the loop concurrently

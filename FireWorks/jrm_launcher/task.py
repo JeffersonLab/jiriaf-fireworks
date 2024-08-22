@@ -1,13 +1,14 @@
 import textwrap
 import base64
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
 
 class SiteStrategy:
     def __init__(self, task_manager):
         self.task_manager = task_manager
 
     def get_remote_ssh_cmds(self, nodename, available_kubelet_ports, available_custom_metrics_ports):
-        kubelet_port = available_kubelet_ports.pop(0)
+        kubelet_port = available_kubelet_ports.get()  # Get a port from the queue
         self.task_manager.jrm_ports.append(kubelet_port)
 
         commands = [
@@ -21,12 +22,12 @@ class SiteStrategy:
 
         # Handle custom metrics ports
         if self.task_manager.jrm.custom_metrics_ports:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor() as executor:
                 futures = [
                     executor.submit(self.execute_custom_metric_command, port, nodename, available_custom_metrics_ports)
                     for port in self.task_manager.jrm.custom_metrics_ports
                 ]
-                for future in concurrent.futures.as_completed(futures):
+                for future in as_completed(futures):
                     commands.append(future.result())
 
         return "; ".join(commands), kubelet_port
@@ -38,7 +39,7 @@ class SiteStrategy:
         raise NotImplementedError("Subclasses should implement this method to generate SSH commands.")
 
     def execute_custom_metric_command(self, port, nodename, available_custom_metrics_ports):
-        mapped_port = available_custom_metrics_ports.pop(0)
+        mapped_port = available_custom_metrics_ports.get()  # Get a port from the queue
         command = self.build_ssh_command(mapped_port, reverse=True, remote_port=port)
         self.task_manager.dict_mapped_custom_metrics_ports[mapped_port] = port
         cmd = self.task_manager.ssh.connect_custom_metrics(mapped_port, port, nodename)
