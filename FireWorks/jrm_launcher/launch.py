@@ -5,6 +5,7 @@ from fireworks import Workflow, Firework, ScriptTask
 from ssh import Tool
 from task import TaskManager
 from manage_port import MangagePorts
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from __init__ import LPAD, LOG_PATH
 
@@ -52,31 +53,29 @@ class BaseJrmManager:
         available_custom_metrics_ports = Tool.request_available_ports(20000, 49999)["ports"]
 
         tasks, nodenames = [], []
-        for node_index in range(self.slurm.nodes):
-            print("====================================")
-            unique_id = str(uuid.uuid4())[:8]
-            nodename = f"{self.jrm.nodename}-{unique_id}"
+        # Use ThreadPoolExecutor to run the loop concurrently
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            futures = []
+            for node_index in range(self.slurm.nodes):
+                future = executor.submit(self.setup_node, node_index, available_kubelet_ports, available_custom_metrics_ports)
+                futures.append(future)
 
-            remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
-            print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
-            print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
-            script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
-            tasks.append(ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"))
-            tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
-            nodenames.append(nodename)
-            time.sleep(self.get_sleep_time())
+            for future in as_completed(futures):
+                nodename, task_list = future.result()
+                nodenames.append(nodename)
+                tasks.extend(task_list)
 
         exec_task = ScriptTask.from_str(self.get_exec_task_cmd(nodenames))
         tasks.append(exec_task)
 
-        fw = Firework(tasks, name=f"{self.jrm.site}_{nodename}")
+        fw = Firework(tasks, name=f"{self.jrm.site}_{nodenames[0]}")
 
         fw.spec["_category"] = self.jrm.site
 
         pre_rocket_string = self.get_pre_rocket_string()
 
         queueadapter = {
-            "job_name": f"{self.jrm.site}_{nodename}",
+            "job_name": f"{self.jrm.site}_{nodenames[0]}",
             "walltime": self.slurm.walltime,
             "qos": self.slurm.qos,
             "nodes": self.slurm.nodes,
@@ -109,9 +108,24 @@ class BaseJrmManager:
         }
 
         wf = Workflow([fw], {fw: []})
-        wf.name = f"{self.jrm.site}_{nodename}"
+        wf.name = f"{self.jrm.site}_{nodenames[0]}"
         return wf
+    
+    def setup_node(self, node_index, available_kubelet_ports, available_custom_metrics_ports):
+        unique_id = str(uuid.uuid4())[:8]
+        nodename = f"{self.jrm.nodename}-{unique_id}"
 
+        remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
+        print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
+        print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
+        script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
+        task_list = [
+            ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"),
+            ScriptTask.from_str(f"chmod +x {nodename}.sh")
+        ]
+
+        return nodename, task_list
+    
     def ensure_vkubelet_pod_ips(self):
         if len(self.jrm.vkubelet_pod_ips) < self.slurm.nodes:
             print(f"Waring: vkubelet_pod_ips is less than nodes. vkubelet_pod_ips: {self.jrm.vkubelet_pod_ips}, nodes: {self.slurm.nodes}")
