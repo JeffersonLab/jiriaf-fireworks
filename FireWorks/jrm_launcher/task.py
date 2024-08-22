@@ -11,8 +11,8 @@ class SiteStrategy:
         self.task_manager.jrm_ports.append(kubelet_port)
 
         commands = [
-            self.build_ssh_command(self.task_manager.jrm.apiserver_port, reverse=True),
-            self.build_ssh_command(kubelet_port, reverse=False)
+            self.build_ssh_command(self.task_manager.jrm.apiserver_port, reverse=False),
+            self.build_ssh_command(kubelet_port, reverse=True)
         ]
 
         cmd = self.task_manager.ssh.connect_metrics_server(kubelet_port, nodename)
