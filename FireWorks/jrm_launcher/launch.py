@@ -64,6 +64,7 @@ class BaseJrmManager:
             tasks.append(ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
             nodenames.append(nodename)
+            time.sleep(self.get_sleep_time())
 
         exec_task = ScriptTask.from_str(self.get_exec_task_cmd(nodenames))
         tasks.append(exec_task)
