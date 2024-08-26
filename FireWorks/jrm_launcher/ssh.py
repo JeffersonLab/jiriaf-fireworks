@@ -108,12 +108,14 @@ class BaseSsh:
         max_retries = 3
         for attempt in range(max_retries):
             response = Tool.send_command(cmd)
-            self._log_response(response, logger_name, cmd, port, nodename)
             if response.get("status") == "Command completed" and Tool.check_port(port):
+                self._log_response(response, logger_name, cmd, port, nodename)
                 return response
             print(f"Retrying SSH connection for port {port} (attempt {attempt + 1}/{max_retries})")
             time.sleep(2)  # Add a delay before retrying
-        return {"error": f"Failed to establish connection on port {port} after {max_retries} attempts"}
+        response = {"error": f"Failed to establish connection on port {port} after {max_retries} attempts"}
+        self._log_response(response, logger_name, cmd, port, nodename)
+        return response
 
     def connect_db(self):
         cmd = self._create_ssh_command(27017, reverse_tunnel=True)
@@ -141,6 +143,7 @@ class BaseSsh:
         response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
+            self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
         return response
 
 
