@@ -74,6 +74,7 @@ class BaseJrmManager:
             nodenames.append(nodename)
             time.sleep(self.get_sleep_time())
 
+        self.ssh.port_nodename_table.save_table()
         exec_task = ScriptTask.from_str(self.get_exec_task_cmd(nodenames))
         tasks.append(exec_task)
 
