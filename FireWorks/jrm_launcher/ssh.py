@@ -105,7 +105,7 @@ class BaseSsh:
 
     def _ensure_connection(self, cmd, port, logger_name, nodename=None):
         """Ensure the SSH connection is established by checking the port using the API."""
-        max_retries = 3
+        max_retries = 8
         for attempt in range(max_retries):
             response = Tool.send_command(cmd)
             if response.get("status") == "Command completed" and Tool.check_port(port):
