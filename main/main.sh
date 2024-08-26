@@ -1,18 +1,10 @@
 #!/bin/bash
 
-set -x
+#set -x
 
-# Check if site argument is provided
-if [ -z "$1" ]; then
-  echo "Usage: $0 <site>"
-  exit 1
-fi
-
-export site=$1 # nersc / ornl
-export env_list="/home/tsai/jrm-launch/main/env.list.$site"
-export jrm_fw_tag=$site
 export logs="$HOME/jrm-launch/logs"
+export port_table=`pwd`/port_table.yaml
 
-docker pull jlabtsai/jrm-fw:$jrm_fw_tag
+docker pull jlabtsai/jrm-fw:main
 
-docker run -it --rm --name=jrm-fw -v $logs:/fw/logs --env-file $env_list jlabtsai/jrm-fw:$jrm_fw_tag "${@:2}"
+docker run -it --rm --name=jrm-fw -v $logs:/fw/logs -v $1:/fw/site_config.yaml -v $port_table:/fw/port_table.yaml  jlabtsai/jrm-fw:main "${@:2}"
