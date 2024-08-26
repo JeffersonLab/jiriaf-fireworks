@@ -1,5 +1,8 @@
-from monty.serialization import loadfn
-import requests, json
+import json
+import os
+from datetime import datetime
+from monty.serialization import loadfn, dumpfn
+import requests
 
 from log import Logger
 
@@ -33,6 +36,29 @@ class Tool:
         else:
             return None
 
+class PortNodenameTable:
+    def __init__(self, filepath='/fw/port_table.yaml'):
+        self.filepath = filepath
+        self.records = self._load_existing_records()
+
+    def _load_existing_records(self):
+        if os.path.exists(self.filepath):
+            existing_records = loadfn(self.filepath)
+            return existing_records if existing_records is not None else []
+        return []
+
+    def add_record(self, port, nodename, mapped_port=None, custom_metrics_port=None):
+        timestamp = datetime.now().strftime('%Y-%m-%d')
+        record = {"port": port, "nodename": nodename, "timestamp": timestamp}
+        if mapped_port and custom_metrics_port:
+            record["mapped_port"] = mapped_port
+            record["custom_metrics_port"] = custom_metrics_port
+        self.records.append(record)
+
+    def save_table(self):
+        dumpfn(self.records, self.filepath)
+        print(f"Port-Nodename table updated at {self.filepath}")
+
 class BaseSsh:
     def __init__(self, config_file):
         self.node_config = loadfn(config_file) if config_file else {}
@@ -44,6 +70,8 @@ class BaseSsh:
         self.ssh_key = self.node_config["ssh"].get("ssh_key")
         self.build_ssh_script = self.node_config["ssh"].get("build_script")
         self.password = self.node_config["ssh"].get("password")
+
+        self.port_nodename_table = PortNodenameTable()
 
     def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
         raise NotImplementedError("Subclasses should implement this method.")
@@ -69,24 +97,32 @@ class BaseSsh:
         cmd = self._create_ssh_command(27017, reverse_tunnel=True)
         response = Tool.send_command(cmd)
         self._log_response(response, 'connect_db_logger', cmd, 27017)
+        if response.get("status") == "Command completed":
+            self.port_nodename_table.add_record(27017, "DB Connection")
         return response
 
     def connect_apiserver(self, apiserver_port):
         cmd = self._create_ssh_command(apiserver_port, reverse_tunnel=True)
         response = Tool.send_command(cmd)
         self._log_response(response, 'connect_apiserver_logger', cmd, apiserver_port)
+        if response.get("status") == "Command completed":
+            self.port_nodename_table.add_record(apiserver_port, "API Server")
         return response
 
     def connect_metrics_server(self, kubelet_port, nodename):
         cmd = self._create_ssh_command(kubelet_port, reverse_tunnel=False)
         response = Tool.send_command(cmd)
         self._log_response(response, 'connect_metrics_server_logger', cmd, kubelet_port, nodename)
+        if response.get("status") == "Command completed":
+            self.port_nodename_table.add_record(kubelet_port, nodename)
         return response
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         cmd = self._create_ssh_command(mapped_port, reverse_tunnel=False)
         response = Tool.send_command(cmd)
         self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
+        if response.get("status") == "Command completed":
+            self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
         return response
 
 
@@ -138,3 +174,7 @@ class SshManager:
 # Example usage:
 # ssh_manager = SshManager(site_name="perlmutter", config_file="path/to/config.yaml")
 # ssh_manager.connect_db()
+# ssh_manager.connect_apiserver(apiserver_port=38687)
+# ssh_manager.connect_metrics_server(kubelet_port=10250, nodename="node-1")
+# ssh_manager.connect_custom_metrics(mapped_port=1234, custom_metrics_port=5678, nodename="node-1")
+# ssh_manager.ssh_instance.port_nodename_table.save_table()  # Save the table at the end
