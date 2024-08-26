@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from monty.serialization import loadfn, dumpfn
 import requests
+import time
 
 from log import Logger
 
@@ -35,6 +36,15 @@ class Tool:
             return response.json()
         else:
             return None
+
+    @classmethod
+    def check_port(cls, port, ip="127.0.0.1"):
+        """Check if a specific port is active by checking for 'No available ports found' in the API response."""
+        url = f"http://172.17.0.1:8888/get_ports/{ip}/{port}/{port}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            return "No available ports found" in response.text
+        return False
 
 class PortNodenameTable:
     def __init__(self, filepath='/fw/port_table.yaml'):
@@ -93,34 +103,42 @@ class BaseSsh:
 
         logger.log(response)
 
+    def _ensure_connection(self, cmd, port, logger_name, nodename=None):
+        """Ensure the SSH connection is established by checking the port using the API."""
+        max_retries = 3
+        for attempt in range(max_retries):
+            response = Tool.send_command(cmd)
+            self._log_response(response, logger_name, cmd, port, nodename)
+            if response.get("status") == "Command completed" and Tool.check_port(port):
+                return response
+            print(f"Retrying SSH connection for port {port} (attempt {attempt + 1}/{max_retries})")
+            time.sleep(2)  # Add a delay before retrying
+        return {"error": f"Failed to establish connection on port {port} after {max_retries} attempts"}
+
     def connect_db(self):
         cmd = self._create_ssh_command(27017, reverse_tunnel=True)
-        response = Tool.send_command(cmd)
-        self._log_response(response, 'connect_db_logger', cmd, 27017)
+        response = self._ensure_connection(cmd, 27017, 'connect_db_logger', "DB Connection")
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(27017, "DB Connection")
         return response
 
     def connect_apiserver(self, apiserver_port):
         cmd = self._create_ssh_command(apiserver_port, reverse_tunnel=True)
-        response = Tool.send_command(cmd)
-        self._log_response(response, 'connect_apiserver_logger', cmd, apiserver_port)
+        response = self._ensure_connection(cmd, apiserver_port, 'connect_apiserver_logger', "API Server")
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(apiserver_port, "API Server")
         return response
 
     def connect_metrics_server(self, kubelet_port, nodename):
         cmd = self._create_ssh_command(kubelet_port, reverse_tunnel=False)
-        response = Tool.send_command(cmd)
-        self._log_response(response, 'connect_metrics_server_logger', cmd, kubelet_port, nodename)
+        response = self._ensure_connection(cmd, kubelet_port, 'connect_metrics_server_logger', nodename)
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(kubelet_port, nodename)
         return response
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         cmd = self._create_ssh_command(mapped_port, reverse_tunnel=False)
-        response = Tool.send_command(cmd)
-        self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
+        response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
         return response
@@ -136,7 +154,6 @@ class PerlmutterSsh(BaseSsh):
         else:
             cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
 
-        # Check if the command is already running and if not, run it
         return cmd
 
 
@@ -170,11 +187,3 @@ class SshManager:
         Dynamically delegate method calls to the underlying ssh_instance.
         """
         return getattr(self.ssh_instance, name)
-
-# Example usage:
-# ssh_manager = SshManager(site_name="perlmutter", config_file="path/to/config.yaml")
-# ssh_manager.connect_db()
-# ssh_manager.connect_apiserver(apiserver_port=38687)
-# ssh_manager.connect_metrics_server(kubelet_port=10250, nodename="node-1")
-# ssh_manager.connect_custom_metrics(mapped_port=1234, custom_metrics_port=5678, nodename="node-1")
-# ssh_manager.ssh_instance.port_nodename_table.save_table()  # Save the table at the end
