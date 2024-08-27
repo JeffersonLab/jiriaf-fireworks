@@ -2,8 +2,8 @@
 
 #set -x
 
-export logs="$HOME/jrm-launch/logs"
-export port_table=`pwd`/port_table.yaml
+export logs="path/to/log/directory"
+export port_table="/path/to/port_table.yaml"
 
 docker pull jlabtsai/jrm-fw:main
 
