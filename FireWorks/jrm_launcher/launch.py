@@ -5,7 +5,6 @@ from fireworks import Workflow, Firework, ScriptTask
 from ssh import Tool
 from task import TaskManager
 from manage_port import MangagePorts
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
 
 from __init__ import LPAD, LOG_PATH
@@ -49,16 +48,13 @@ class BaseJrmManager:
         # Ensure vkubelet_pod_ips length matches the number of nodes
         self.ensure_vkubelet_pod_ips()
 
-        # Generate available ports and convert them to queue objects
-        available_kubelet_ports = Queue()
-        available_custom_metrics_ports = Queue()
+        # Generate available ports using Tool class
+        available_kubelet_ports = Tool.get_available_ports(10000, 20000)
+        available_custom_metrics_ports = Tool.get_available_ports(20000, 50000)
 
-        for port in Tool.request_available_ports(10000, 19999)["ports"]:
-            available_kubelet_ports.put(port)
-
-        for port in Tool.request_available_ports(20000, 49999)["ports"]:
-            available_custom_metrics_ports.put(port)
-
+        print(f"Available kubelet ports: {available_kubelet_ports}")
+        print(f"Available custom metrics ports: {available_custom_metrics_ports}")
+        
         tasks, nodenames = [], []
         for node_index in range(self.slurm.nodes):
             print("====================================")
@@ -67,7 +63,6 @@ class BaseJrmManager:
 
             remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
             print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
-            # print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
             tasks.append(ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
@@ -170,3 +165,4 @@ class OrnlJrmManager(BaseJrmManager):
         conda activate fireworks
         expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
         """
+
