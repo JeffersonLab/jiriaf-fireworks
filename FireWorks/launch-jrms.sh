@@ -33,9 +33,11 @@ case "$1" in
             exit 1
         fi
         python /fw/jrm_launcher/gen_wf.py add_wf --site_config_file "$2"
+        # Do not exit; keep the container alive
         ;;
     get_wf)
         lpad -l /fw/util/my_launchpad.yaml get_wflows -t 
+        exit 0
         ;;
     delete_wf)
         if [ -z "$2" ]; then
@@ -46,6 +48,7 @@ case "$1" in
         for fw_id in "${@:2}"; do
             python /fw/jrm_launcher/gen_wf.py delete_wf --fw_id "$fw_id"
         done
+        exit 0
         ;;
     delete_ports)
         if [ -z "$2" ] || [ -z "$3" ]; then
@@ -53,6 +56,7 @@ case "$1" in
             exit 1
         fi
         python /fw/jrm_launcher/gen_wf.py delete_ports --start "$2" --end "$3"
+        exit 0
         ;;
     connect)
         if [ -z "$2" ]; then
@@ -89,12 +93,17 @@ case "$1" in
                 exit 1
                 ;;
         esac
+        # Do not exit; keep the container alive
         ;;
     shell)
         cd /fw
         ipython -i -c "from fireworks import LaunchPad; LPAD = LaunchPad.from_file('/fw/util/my_launchpad.yaml'); LOG_PATH = '/fw/logs/'; print('LaunchPad and LOG_PATH initialized.')"
+        exit 0
         ;;
     *)
         handle_invalid_arg
         ;;
 esac
+
+# Keep the container running indefinitely
+tail -f /dev/null
