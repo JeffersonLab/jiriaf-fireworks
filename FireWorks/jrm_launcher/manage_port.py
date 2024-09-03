@@ -1,23 +1,20 @@
 
 from ssh import Tool
 from log import Logger
+import psutil
 
 from __init__ import LPAD, LOG_PATH
 
 class MangagePorts:
-    # inherit from Ssh class
     def __init__(self):
         self.to_delete_ports = []
         self.to_delete_fw_ids = []
         self.to_delete_knodes = []
 
-
     def find_ports_from_lpad(self, lost_runs_time_limit=3 * 60 * 60):
         completed_or_fizzled_fws = LPAD.get_fw_ids({"state": {"$in": ["COMPLETED", "FIZZLED"]}})
-        # lost_fws = LPAD.detect_lostruns(expiration_secs=lost_runs_time_limit, fizzle=True)[1]
         print(f"Completed or Fizzled fw_ids: {completed_or_fizzled_fws}")
-        # print(f"Lost fw_ids: {lost_fws}")
-        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_fizzled_fws] #+lost_fws]
+        fws = [LPAD.get_fw_by_id(fw_id) for fw_id in completed_or_fizzled_fws]
         for fw in fws:
             if "ssh_info" in fw.spec:
                 ssh_info = fw.spec["ssh_info"]
@@ -55,20 +52,44 @@ class MangagePorts:
 
         return self.to_delete_ports
     
+
     def delete_ports(self):
-        # send the cmd to REST API server listening 8888 to delete the ports
+        # Iterate over the ports and try to kill any process that is using them
         for port, fw_id in zip(self.to_delete_ports, self.to_delete_fw_ids):
-            print(f"Delete port {port} used by fw_id {fw_id}, check the log at {LOG_PATH}delete_ports_logger.log")
-            cmd = f"lsof -i:{port}; if [ $? -eq 0 ]; then kill -9 $(lsof -t -i:{port}); fi"
-            response = Tool.send_command(cmd)
-            response['cmd'] = cmd
-            response['port'] = port
+            print(f"Attempting to delete port {port} used by fw_id {fw_id}. Check the log at {LOG_PATH}delete_ports_logger.log")
+            
+            # Ensure the port is an integer
+            port = int(port)
+
+            # Check if the port is in use and terminate the process using it
+            if not Tool.check_port_socket(port):
+                print(f"Deleting process using port {port}")
+                response = self.kill_process_using_port(port)
+                response['cmd'] = f"Process using port {port} killed"  # Log this as a command
+            else:
+                response = {"status": "Port not in use", "port": port}
+            
+            # Log the response
             response['complete_fw_id'] = fw_id
             logger = Logger('delete_ports_logger')
             logger.log(response)
 
+    def kill_process_using_port(self, port):
+        """Kill the process using the specified port."""
+        for proc in psutil.process_iter(['pid', 'name', 'connections']):
+            try:
+                for conn in proc.info['connections']:
+                    if conn.laddr.port == port:
+                        proc.kill()
+                        print(f"Process {proc.info['name']} with PID {proc.info['pid']} killed")
+                        return {"status": "Process killed", "port": port, "pid": proc.info['pid']}
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return {"status": "No process found", "port": port}
+
+
+
     def delete_nodes(self):
-        # send the cmd to REST API server listening 8888 to delete the nodes
         try:
             cmd = f"kubectl delete nodes {' '.join(self.to_delete_knodes)}"
         except Exception as e:
