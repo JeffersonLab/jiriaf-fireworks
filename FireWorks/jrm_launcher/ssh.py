@@ -2,49 +2,64 @@ import json
 import os
 from datetime import datetime
 from monty.serialization import loadfn, dumpfn
-import requests
+import subprocess
 import time
+from queue import Queue
 
 from log import Logger
+
+from concurrent.futures import ThreadPoolExecutor
+
+import socket
 
 class Tool:
     @classmethod
     def send_command(cls, command):
-        url = "http://172.17.0.1:8888/run"
-        data = {'command': command}
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            response_text = response.text.replace('\n', '\\n')
-            return json.loads(response_text)
-        else:
-            return None
-        
-    @classmethod
-    def request_available_port(cls, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
-    
-    @classmethod
-    def request_available_ports(cls, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_ports/{ip}/{start}/{end}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
+        try:
+            # Using shell=True to run the command in the background
+            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            time.sleep(1)  # Give the process a moment to start
+            if process.poll() is None:  # Check if the process is still running (background)
+                return {"status": "Command completed and sent to background"}
+            else:
+                stdout, stderr = process.communicate()
+                return {"status": "Command failed", "error": stderr.decode('utf-8')}
+        except Exception as e:
+            return {"status": "Command failed", "error": str(e)}
 
     @classmethod
     def check_port(cls, port, ip="127.0.0.1"):
-        """Check if a specific port is active by checking for 'No available ports found' in the API response."""
-        url = f"http://172.17.0.1:8888/get_ports/{ip}/{port}/{port}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return "No available ports found" in response.text
-        return False
+        """Check if a specific port is active using netstat."""
+        try:
+            output = subprocess.check_output(f"netstat -an | grep {port}", shell=True)
+            return True if output else False
+        except subprocess.CalledProcessError:
+            return False
+
+    @classmethod
+    def check_port_socket(cls, port, ip="127.0.0.1"):
+        """Check if a specific port is available by attempting to bind a socket to it."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((ip, port))
+                return True
+            except OSError:
+                print(f"Port {port} is already in use")
+                return False
+
+    @classmethod
+    def get_available_ports(cls, start_port, end_port, ip="127.0.0.1", max_workers=50):
+        """Generate available ports in the given range that are not currently in use, using socket binding."""
+        available_ports = Queue()
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(cls.check_port_socket, port, ip): port for port in range(start_port, end_port)}
+            for future in futures:
+                if future.result():
+                    available_ports.put(futures[future])
+
+        return available_ports
 
 class PortNodenameTable:
     def __init__(self, filepath='/fw/port_table.yaml'):
@@ -61,6 +76,7 @@ class PortNodenameTable:
         timestamp = datetime.now().strftime('%Y-%m-%d')
         record = {"port": port, "nodename": nodename, "timestamp": timestamp}
         if mapped_port and custom_metrics_port:
+            print(f"Adding custom metrics port {custom_metrics_port} and mapped port {mapped_port} for nodename {nodename}")
             record["mapped_port"] = mapped_port
             record["custom_metrics_port"] = custom_metrics_port
         self.records.append(record)
@@ -104,11 +120,11 @@ class BaseSsh:
         logger.log(response)
 
     def _ensure_connection(self, cmd, port, logger_name, nodename=None):
-        """Ensure the SSH connection is established by checking the port using the API."""
+        """Ensure the SSH connection is established by checking the port using netstat."""
         max_retries = 8
         for attempt in range(max_retries):
             response = Tool.send_command(cmd)
-            if response.get("status") == "Command completed" and Tool.check_port(port):
+            if response.get("status") == "Command completed and sent to background" and Tool.check_port(port):
                 self._log_response(response, logger_name, cmd, port, nodename)
                 return response
             print(f"Retrying SSH connection for port {port} (attempt {attempt + 1}/{max_retries})")
@@ -120,28 +136,28 @@ class BaseSsh:
     def connect_db(self):
         cmd = self._create_ssh_command(27017, reverse_tunnel=True)
         response = self._ensure_connection(cmd, 27017, 'connect_db_logger', "DB Connection")
-        if response.get("status") == "Command completed":
+        if response.get("status") == "Command completed and sent to background":
             self.port_nodename_table.add_record(27017, "DB Connection")
         return response
 
     def connect_apiserver(self, apiserver_port):
         cmd = self._create_ssh_command(apiserver_port, reverse_tunnel=True)
         response = self._ensure_connection(cmd, apiserver_port, 'connect_apiserver_logger', "API Server")
-        if response.get("status") == "Command completed":
+        if response.get("status") == "Command completed and sent to background":
             self.port_nodename_table.add_record(apiserver_port, "API Server")
         return response
 
     def connect_metrics_server(self, kubelet_port, nodename):
         cmd = self._create_ssh_command(kubelet_port, reverse_tunnel=False)
         response = self._ensure_connection(cmd, kubelet_port, 'connect_metrics_server_logger', nodename)
-        if response.get("status") == "Command completed":
+        if response.get("status") == "Command completed and sent to background":
             self.port_nodename_table.add_record(kubelet_port, nodename)
         return response
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         cmd = self._create_ssh_command(mapped_port, reverse_tunnel=False)
         response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
-        if response.get("status") == "Command completed":
+        if response.get("status") == "Command completed and sent to background":
             self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
             self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
         return response
@@ -153,9 +169,19 @@ class PerlmutterSsh(BaseSsh):
             raise ValueError("Missing SSH parameters for Perlmutter site.")
 
         if reverse_tunnel:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {port}:localhost:{port} {self.remote}"
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfR {port}:localhost:{port} {self.remote}"
+            )
         else:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfL *:{port}:localhost:{port} {self.remote}"
+            )
 
         return cmd
 
@@ -167,7 +193,7 @@ class OrnlSsh(BaseSsh):
 
         orig_cmd = f"{self.build_ssh_script} {port} {str(reverse_tunnel).lower()} {self.password}"
         if nohup:
-            cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
+            cmd = f"nohup {orig_cmd} > /dev/null 2>&1"
         else:
             cmd = orig_cmd
         return cmd
