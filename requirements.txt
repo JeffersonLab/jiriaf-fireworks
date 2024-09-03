@@ -18,3 +18,4 @@ tqdm==4.62.3
 wcwidth==0.2.13
 Werkzeug==2.0.2
 requests==2.26.0
+psutil == 5.8.0
