@@ -51,9 +51,6 @@ class BaseJrmManager:
         # Generate available ports using Tool class
         available_kubelet_ports = Tool.get_available_ports(10000, 20000)
         available_custom_metrics_ports = Tool.get_available_ports(20000, 50000)
-
-        print(f"Available kubelet ports: {available_kubelet_ports}")
-        print(f"Available custom metrics ports: {available_custom_metrics_ports}")
         
         tasks, nodenames = [], []
         for node_index in range(self.slurm.nodes):
