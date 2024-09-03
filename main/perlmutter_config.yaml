@@ -20,6 +20,6 @@ jrm:
     - 1423
 
 ssh:
-  remote_proxy: perlmutter
+  remote_proxy: jlabtsai@perlmutter.nersc.gov
   remote: jlabtsai@128.55.64.13
   ssh_key: $HOME/.ssh/nersc
