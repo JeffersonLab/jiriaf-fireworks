@@ -1,8 +1,8 @@
 # Use an existing docker image as a base
 FROM python:3.10
 
-# Install necessary tools including SSH client and netstat
-RUN apt-get update && apt-get install -y net-tools openssh-client expect
+# Install necessary tools including SSH client
+RUN apt-get update && apt-get install -y net-tools openssh-client expect lsof
 
 # Create a directory for SSH configuration
 RUN mkdir -p /root/.ssh
@@ -31,6 +31,4 @@ COPY create-ssh-connections/* /fw/create-ssh-connections/
 
 # Set the entrypoint to the launch script
 ENTRYPOINT ["/fw/launch-jrms.sh"]
-
-
 
