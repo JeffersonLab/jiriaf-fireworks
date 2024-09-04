@@ -77,7 +77,7 @@ class Ssh:
 
     @staticmethod
     def send_command(command):
-        url = "http://172.17.0.1:8888/run"
+        url = "http://127.0.0.1:8888/run"
         data = {'command': command}
         response = requests.post(url, data=data)  # Use data instead of json
         if response.status_code == 200:
@@ -87,7 +87,7 @@ class Ssh:
             return None
         
     def request_available_port(self, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
+        url = f"http://127.0.0.1:8888/get_port/{ip}/{start}/{end}"
         response = requests.get(url)
 
         if response.status_code == 200:
@@ -96,7 +96,7 @@ class Ssh:
             return None
     
     def request_available_ports(self, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_ports/{ip}/{start}/{end}"
+        url = f"http://127.0.0.1:8888/get_ports/{ip}/{start}/{end}"
         response = requests.get(url)
         
         if response.status_code == 200:
