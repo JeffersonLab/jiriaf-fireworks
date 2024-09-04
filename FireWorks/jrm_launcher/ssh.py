@@ -153,9 +153,19 @@ class PerlmutterSsh(BaseSsh):
             raise ValueError("Missing SSH parameters for Perlmutter site.")
 
         if reverse_tunnel:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfR {port}:localhost:{port} {self.remote}"
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfR {port}:localhost:{port} {self.remote}"
+            )
         else:
-            cmd = f"ssh -i {self.ssh_key} -J {self.remote_proxy} -NfL *:{port}:localhost:{port} {self.remote}"
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfL *:{port}:localhost:{port} {self.remote}"
+            )
 
         return cmd
 
