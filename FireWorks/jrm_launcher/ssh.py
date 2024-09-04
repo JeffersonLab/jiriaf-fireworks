@@ -10,7 +10,7 @@ from log import Logger
 class Tool:
     @classmethod
     def send_command(cls, command):
-        url = "http://172.17.0.1:8888/run"
+        url = "http://127.0.0.1:8888/run"
         data = {'command': command}
         response = requests.post(url, data=data)
         if response.status_code == 200:
@@ -21,7 +21,7 @@ class Tool:
         
     @classmethod
     def request_available_port(cls, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_port/{ip}/{start}/{end}"
+        url = f"http://127.0.0.1:8888/get_port/{ip}/{start}/{end}"
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -30,7 +30,7 @@ class Tool:
     
     @classmethod
     def request_available_ports(cls, start, end, ip="127.0.0.1"):
-        url = f"http://172.17.0.1:8888/get_ports/{ip}/{start}/{end}"
+        url = f"http://127.0.0.1:8888/get_ports/{ip}/{start}/{end}"
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
@@ -40,7 +40,7 @@ class Tool:
     @classmethod
     def check_port(cls, port, ip="127.0.0.1"):
         """Check if a specific port is active by checking for 'No available ports found' in the API response."""
-        url = f"http://172.17.0.1:8888/get_ports/{ip}/{port}/{port}"
+        url = f"http://127.0.0.1:8888/get_ports/{ip}/{port}/{port}"
         response = requests.get(url)
         if response.status_code == 200:
             return "No available ports found" in response.text
