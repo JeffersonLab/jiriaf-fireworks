@@ -21,14 +21,15 @@ RUN pip install ipython
 # Create log directory and copy necessary files
 RUN mkdir -p /fw/logs
 COPY FireWorks/util /fw/util
-COPY main /fw/main
 
 # Copy all files in the FireWorks directory to the container but keep the directory structure intact 
 COPY FireWorks/jrm_launcher /fw/jrm_launcher
-COPY FireWorks/launch-jrms.sh /fw/launch-jrms.sh
+COPY FireWorks/main.sh /fw/main.sh
 
-COPY create-ssh-connections/* /fw/create-ssh-connections/
+COPY create-ssh-connections/jrm-create-ssh-connections /fw/jrm-create-ssh-connections
+COPY aux /fw/aux
 
-# Set the entrypoint to the launch script
-ENTRYPOINT ["/fw/launch-jrms.sh"]
+# Change the working directory
+WORKDIR /fw
 
+CMD ["bash"]

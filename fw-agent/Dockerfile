@@ -79,5 +79,7 @@ CMD /etc/init.d/munge start && /usr/sbin/slurmd && /bin/bash
 # Expose ports
 EXPOSE 6817 6818 6819
 
+COPY fw_config /fw_config
+
 # Run bash shell by default
 CMD ["bash"]

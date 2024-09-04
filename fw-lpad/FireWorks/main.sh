@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run /fw/create-ssh-connections/jrm-create-ssh-connections 
-/fw/create-ssh-connections/jrm-create-ssh-connections &
+/fw/jrm-create-ssh-connections &
 
 # Define a function to display help
 function display_help {
@@ -92,6 +92,8 @@ case "$1" in
                 exit 1
                 ;;
         esac
+        # keep the container running
+        tail -f /dev/null
         ;;
     shell)
         cd /fw
