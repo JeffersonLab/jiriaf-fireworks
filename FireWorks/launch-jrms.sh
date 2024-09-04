@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Run /fw/create-ssh-connections/jrm-create-ssh-connections 
+/fw/create-ssh-connections/jrm-create-ssh-connections &
+
 # Define a function to display help
 function display_help {
     echo "Usage: ./launch-jrms.sh [command] [options]"
