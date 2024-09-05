@@ -20,7 +20,7 @@
 
 $${pre_rocket}
 cd $${launch_dir}
-apptainer exec --env SLURM_CONF=$HOME/slurm.conf --bind /run/munge/munge.socket.2:/run/munge/munge.socket.2 fw-agent_main.sif $${rocket_launch}
+$${rocket_launch}
 $${post_rocket}
 
 # CommonAdapter (SLURM) completed writing Template
