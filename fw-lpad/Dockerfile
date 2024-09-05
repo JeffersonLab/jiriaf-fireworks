@@ -2,7 +2,14 @@
 FROM python:3.10
 
 # Install necessary tools including SSH client
-RUN apt-get update && apt-get install -y net-tools openssh-client expect lsof
+RUN apt-get update && apt-get install -y \ 
+    net-tools \
+    openssh-client \
+    expect \
+    lsof \
+    vim \
+    less \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create a directory for SSH configuration
 RUN mkdir -p /root/.ssh
@@ -32,4 +39,11 @@ COPY aux /fw/aux
 # Change the working directory
 WORKDIR /fw
 
-CMD ["bash"]
+# Copy the entrypoint script into the image
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Make the entrypoint script executable
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
