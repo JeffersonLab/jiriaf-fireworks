@@ -168,7 +168,7 @@ func main() {
             }
         }()
 
-        http.ListenAndServe(":8888", r)
+        http.ListenAndServe("172.17.0.1:8888", r)
 
         if !restartServer {
             break
