@@ -148,7 +148,8 @@ class PerlmutterJrmManager(BaseJrmManager):
         return f"ssh_key: {self.ssh.ssh_key}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
 
     def get_exec_task_cmd(self, nodenames):
-        return f"for nodename in {' '.join(nodenames)}; do srun --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'"
+        srun_command = f"srun --nodes=1 sh $nodename.sh&"
+        return f"for nodename in {' '.join(nodenames)}; do {srun_command} done; wait; echo 'All nodes are done'"
 
     def get_pre_rocket_string(self):
         return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh.remote}"
