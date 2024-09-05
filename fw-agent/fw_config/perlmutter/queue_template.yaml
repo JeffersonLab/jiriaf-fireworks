@@ -20,7 +20,7 @@
 
 $${pre_rocket}
 cd $${launch_dir}
-shifter --image=jlabtsai/fw-agent:main -- $${rocket_launch}
+$${rocket_launch}
 $${post_rocket}
 
 # CommonAdapter (SLURM) completed writing Template
