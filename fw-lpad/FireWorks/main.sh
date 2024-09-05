@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Run /fw/create-ssh-connections/jrm-create-ssh-connections 
-/fw/jrm-create-ssh-connections &
-
 # Define a function to display help
 function display_help {
     echo "Usage: ./launch-jrms.sh [command] [options]"
@@ -35,6 +32,7 @@ case "$1" in
             echo "Please provide a site-specific configuration file to add a workflow. Example: ./launch-jrms.sh add_wf /path/to/site_config.yaml"
             exit 1
         fi
+        # Run /fw/create-ssh-connections/jrm-create-ssh-connections 
         python /fw/jrm_launcher/gen_wf.py add_wf --site_config_file "$2"
         ;;
     get_wf)
