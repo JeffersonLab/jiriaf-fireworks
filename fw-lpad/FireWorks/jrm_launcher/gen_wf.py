@@ -15,6 +15,8 @@ class MainJrmManager:
             return launch.PerlmutterJrmManager(self.slurm, self.jrm, self.ssh)
         elif self.jrm.site == "ornl":
             return launch.OrnlJrmManager(self.slurm, self.jrm, self.ssh)
+        elif self.jrm.site == "test":
+            return launch.TestJrmManager(self.slurm, self.jrm, self.ssh)
         else:
             raise ValueError(f"Site {self.jrm.site} is not supported.")
 

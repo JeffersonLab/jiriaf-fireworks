@@ -181,7 +181,28 @@ class OrnlSsh(BaseSsh):
         else:
             cmd = orig_cmd
         return cmd
-    
+
+class TestSsh(BaseSsh):
+    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
+        if not self.ssh_key or not self.remote_proxy or not self.remote:
+            raise ValueError("Missing SSH parameters for Perlmutter site.")
+
+        if reverse_tunnel:
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfR {port}:localhost:{port} {self.remote}"
+            )
+        else:
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=no "
+                f"-i {self.ssh_key} "
+                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
+                f"-NfL *:{port}:localhost:{port} {self.remote}"
+            )
+
+        return cmd
 
 class SshManager:
     def __init__(self, site_name, config_file):
@@ -192,6 +213,8 @@ class SshManager:
             return PerlmutterSsh(config_file)
         elif site_name == "ornl":
             return OrnlSsh(config_file)
+        elif site_name == "test":
+            return TestSsh(config_file)
         else:
             raise ValueError(f"Site {site_name} is not supported.")
 

@@ -108,6 +108,17 @@ class OrnlStrategy(SiteStrategy):
     def build_container_command(self, nodename):
         return f"apptainer exec $HOME/vk-cmd_main.sif cp -r /vk-cmd `pwd`/{nodename}"
 
+class TestStrategy(SiteStrategy):
+    def build_ssh_command(self, port, reverse, remote_port=None):
+        if reverse:
+            remote_port = remote_port or port  # Use remote_port if provided, otherwise fall back to port
+            return f"ssh -NfR {port}:localhost:{remote_port} {self.task_manager.ssh.remote}"
+        else:
+            return f"ssh -NfL {port}:localhost:{port} {self.task_manager.ssh.remote}"
+
+    def build_container_command(self, nodename):
+        return f"shifter --image={self.task_manager.jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{nodename}\""
+    
 class TaskManager:
     def __init__(self, slurm_instance, jrm_instance, ssh_instance):
         self.slurm = slurm_instance
@@ -125,6 +136,9 @@ class TaskManager:
             return PerlmutterStrategy(self) # Pass TaskManager instance to the strategy
         elif site_type == "ornl":
             return OrnlStrategy(self) # Pass TaskManager instance to the strategy
+        elif site_type == "test":
+            self.jrm.site = "perlmutter"
+            return TestStrategy(self) # Pass TaskManager instance to the strategy
         else:
             raise ValueError(f"Unsupported site type: {site_type}")
 
