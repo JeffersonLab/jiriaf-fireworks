@@ -73,9 +73,10 @@ expect {
 # Wait for the prompt after the second login
 expect {
     -re "(%|#|\\$) $" {
-        # Tunnel is established, exit script
+        # Tunnel is established, keep the connection alive
         puts "Tunnel established successfully"
-        send "exit\r"
+        # Instead of exiting, we'll enter an infinite loop
+        send "while true; do sleep 3600; done\r"
     }
     timeout {
         puts "Did not get shell prompt on ornl-worker"
@@ -83,14 +84,18 @@ expect {
     }
 }
 
+# Wait indefinitely to keep the script running and the tunnel open
+interact
+
+# The following part is no longer needed as we're not exiting the remote session
 # Exit the remote session
-expect {
-    -re "(%|#|\\$) $" {
-        puts "Exited remote session successfully"
-        exit 0
-    }
-    timeout {
-        puts "Failed to exit remote session"
-        exit 1
-    }
-}
+# expect {
+#     -re "(%|#|\\$) $" {
+#         puts "Exited remote session successfully"
+#         exit 0
+#     }
+#     timeout {
+#         puts "Failed to exit remote session"
+#         exit 1
+#     }
+# }
