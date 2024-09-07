@@ -4,24 +4,11 @@ from __init__ import LOG_PATH, LPAD
 import jrm, slurm, ssh, launch, manage_port
 
 class MainJrmManager:
-    JRM_MANAGERS = {
-        "perlmutter": launch.PerlmutterJrmManager,
-        "ornl": launch.OrnlJrmManager,
-        "test": launch.TestJrmManager,
-        # Add new sites here
-    }
-
     def __init__(self, config_file):
         self.slurm = slurm.ReadConfig(config_file)
         self.jrm = jrm.ReadConfig(config_file)
         self.ssh = ssh.SshManager(self.jrm.site, config_file)
-        self.jrm_manager = self.get_jrm_manager()
-
-    def get_jrm_manager(self):
-        JrmManagerClass = self.JRM_MANAGERS.get(self.jrm.site)
-        if JrmManagerClass is None:
-            raise ValueError(f"Site {self.jrm.site} is not supported.")
-        return JrmManagerClass(self.slurm, self.jrm, self.ssh)
+        self.jrm_manager = launch.JrmManager(self.slurm, self.jrm, self.ssh)
 
     def add_jrm(self):
         result = self.jrm_manager.launch_jrm_script()

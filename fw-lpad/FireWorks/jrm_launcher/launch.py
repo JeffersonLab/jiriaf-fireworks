@@ -7,6 +7,7 @@ from task import TaskManager
 from manage_port import MangagePorts
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
+from site_config import get_site_config
 
 from __init__ import LPAD, LOG_PATH
 
@@ -140,48 +141,20 @@ class BaseJrmManager:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
 
-class PerlmutterJrmManager(BaseJrmManager):
+class JrmManager(BaseJrmManager):
+    def __init__(self, slurm_instance, jrm_instance, ssh_instance):
+        super().__init__(slurm_instance, jrm_instance, ssh_instance)
+        self.site_config = get_site_config(jrm_instance.config_class)
+        self.site_config.set_managers(self.task, ssh_instance)
+
     def get_sleep_time(self):
-        return 3
+        return self.site_config.get_sleep_time()
 
     def get_connection_info(self):
-        return f"ssh_key: {self.ssh.ssh_key}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
+        return self.site_config.get_connection_info()
 
     def get_exec_task_cmd(self, nodenames):
-        srun_command = f"srun --nodes=1 sh $nodename.sh&"
-        return f"for nodename in {' '.join(nodenames)}; do {srun_command} done; wait; echo 'All nodes are done'"
+        return self.site_config.get_exec_task_cmd(nodenames)
 
     def get_pre_rocket_string(self):
-        return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh.remote}"
-
-
-class OrnlJrmManager(BaseJrmManager):
-    def get_sleep_time(self):
-        return 3
-
-    def get_connection_info(self):
-        return f"password: {self.ssh.password}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
-
-    def get_exec_task_cmd(self, nodenames):
-        return f"for nodename in {' '.join(nodenames)}; do srun --cpu-bind=none --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'"
-
-    def get_pre_rocket_string(self):
-        decoded_password = base64.b64decode(self.ssh.password).decode('utf-8')
-        return f"""
-        conda activate fireworks
-        expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
-        """
-
-class TestJrmManager(BaseJrmManager):
-    def get_sleep_time(self):
-        return 3
-
-    def get_connection_info(self):
-        return f"ssh_key: {self.ssh.ssh_key}, remote: {self.ssh.remote}, remote_proxy: {self.ssh.remote_proxy}"
-
-    def get_exec_task_cmd(self, nodenames):
-        srun_command = f"sh $nodename.sh&"
-        return f"for nodename in {' '.join(nodenames)}; do {srun_command} done; wait; echo 'All nodes are done'"
-
-    def get_pre_rocket_string(self):
-        return f"ssh -NfL 27017:localhost:27017 {self.ssh.remote}"
+        return self.site_config.get_pre_rocket_string()

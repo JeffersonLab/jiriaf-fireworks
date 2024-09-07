@@ -16,7 +16,8 @@ jrm:
   vkubelet_pod_ips:
     - 172.17.0.1
   custom_metrics_ports: [2221, 1776, 8088, 2222]
-
+  config_class:
+  
 ssh:
   remote_proxy:
   remote: 172.30.161.5

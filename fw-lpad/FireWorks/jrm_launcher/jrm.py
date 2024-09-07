@@ -29,3 +29,7 @@ class ReadConfig:
         if not self.image:
             self.image = "docker:jlabtsai/vk-cmd:main"
         self.custom_metrics_ports = self.node_config["jrm"]["custom_metrics_ports"] if "custom_metrics_ports" in self.node_config["jrm"] else []
+
+        self.config_class = self.node_config["jrm"]["config_class"]
+        if not self.config_class:
+            self.config_class = self.site

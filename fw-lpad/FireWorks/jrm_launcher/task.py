@@ -4,40 +4,30 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
 import time
 
-from site_strategies import PerlmutterStrategy, OrnlStrategy, TestStrategy
+from site_config import get_site_config
 
 class TaskManager:
-    SITE_STRATEGIES = {
-        "perlmutter": PerlmutterStrategy,
-        "ornl": OrnlStrategy,
-        "test": TestStrategy,
-        # Add new sites here
-    }
-
     def __init__(self, slurm_instance, jrm_instance, ssh_instance):
         self.slurm = slurm_instance
         self.jrm = jrm_instance
         self.ssh = ssh_instance
-        self.strategy = self.get_site_strategy(jrm_instance.site)
+        self.site_config = get_site_config(jrm_instance.site)
+        self.site_config.set_managers(self, ssh_instance)
 
         self.jrm_ports = []
         self.dict_mapped_custom_metrics_ports = {}
         self.ssh_metrics_cmds = []
         self.ssh_custom_metrics_cmds = []
 
-    def get_site_strategy(self, site_type):
-        StrategyClass = self.SITE_STRATEGIES.get(site_type)
-        if StrategyClass is None:
-            raise ValueError(f"Unsupported site type: {site_type}")
-        return StrategyClass(self)
+        self.jrm.site = jrm_instance.site  # Ensure the correct site is used for JIRIAF_SITE
 
     def get_remote_ssh_cmds(self, nodename, available_kubelet_ports, available_custom_metrics_ports):
         kubelet_port = available_kubelet_ports.get()  # Get a port from the queue
         self.jrm_ports.append(kubelet_port)
 
         commands = [
-            self.strategy.build_ssh_command(self.jrm.apiserver_port, reverse=False),
-            self.strategy.build_ssh_command(kubelet_port, reverse=True)
+            self.site_config.build_ssh_command(self.jrm.apiserver_port, reverse=False),
+            self.site_config.build_ssh_command(kubelet_port, reverse=True)
         ]
 
         cmd = self.ssh.connect_metrics_server(kubelet_port, nodename)
@@ -58,7 +48,7 @@ class TaskManager:
 
     def execute_custom_metric_command(self, port, nodename, available_custom_metrics_ports):
         mapped_port = available_custom_metrics_ports.get()  # Get a port from the queue
-        command = self.strategy.build_ssh_command(mapped_port, reverse=True, remote_port=port)
+        command = self.site_config.build_ssh_command(mapped_port, reverse=True, remote_port=port)
         self.dict_mapped_custom_metrics_ports[mapped_port] = port
         cmd = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
         self.ssh_custom_metrics_cmds.append(cmd)
@@ -67,7 +57,7 @@ class TaskManager:
 
     def get_jrm_script(self, nodename, kubelet_port, ssh_cmds, vkubelet_pod_ip):
         jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
-        container_command = self.strategy.build_container_command(nodename)
+        container_command = self.site_config.build_container_command(nodename)
 
         script = textwrap.dedent(f"""
             #!/bin/bash -l

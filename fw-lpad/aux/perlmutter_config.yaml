@@ -18,6 +18,7 @@ jrm:
   custom_metrics_ports:
     - 1234
     - 1423
+  config_class:
 
 ssh:
   remote_proxy: perlmutter

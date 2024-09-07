@@ -21,6 +21,7 @@ jrm:
   {% for port in custom_metrics_ports %}
     - {{int}}                   # Port number, e.g., 1234
   {% endfor %}{% endif %}
+  config_class: {{str}}           # Configuration class to use, e.g., "perlmutter", "ornl", or "test"
 
 ssh:
   remote_proxy: {{str}}          # SSH remote proxy, e.g., "perlmutter" or "none"

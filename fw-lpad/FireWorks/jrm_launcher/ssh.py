@@ -6,6 +6,7 @@ import requests
 import time
 
 from log import Logger
+from site_config import get_site_config
 
 class Tool:
     @classmethod
@@ -147,79 +148,23 @@ class BaseSsh:
         return response
 
 
-class PerlmutterSsh(BaseSsh):
-    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
-        if not self.ssh_key or not self.remote_proxy or not self.remote:
-            raise ValueError("Missing SSH parameters for Perlmutter site.")
-
-        if reverse_tunnel:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
-                f"-NfR {port}:localhost:{port} {self.remote}"
-            )
-        else:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
-                f"-NfL *:{port}:localhost:{port} {self.remote}"
-            )
-
-        return cmd
-
-
-class OrnlSsh(BaseSsh):
-    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
-        if not self.build_ssh_script or not self.password:
-            raise ValueError("Missing SSH parameters for ORNL site.")
-
-        orig_cmd = f"{self.build_ssh_script} {port} {str(reverse_tunnel).lower()} {self.password}"
-        if nohup:
-            cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
-        else:
-            cmd = orig_cmd
-        return cmd
-
-class TestSsh(BaseSsh):
-    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
-        if not self.ssh_key or not self.remote_proxy or not self.remote:
-            raise ValueError("Missing SSH parameters for Perlmutter site.")
-
-        if reverse_tunnel:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
-                f"-NfR {port}:localhost:{port} {self.remote}"
-            )
-        else:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_key} -W %h:%p {self.remote_proxy}' "
-                f"-NfL *:{port}:localhost:{port} {self.remote}"
-            )
-
-        return cmd
-
-class SshManager:
-    SSH_INSTANCES = {
-        "perlmutter": PerlmutterSsh,
-        "ornl": OrnlSsh,
-        "test": TestSsh,
-        # Add new sites here
-    }
-
+class SshManager(BaseSsh):
     def __init__(self, site_name, config_file):
-        self.ssh_instance = self.get_ssh_instance(site_name, config_file)
+        super().__init__(config_file)
+        self.site_config = get_site_config(site_name)
+        self.site_config.set_managers(self, self)
 
-    def get_ssh_instance(self, site_name, config_file):
-        SshClass = self.SSH_INSTANCES.get(site_name)
-        if SshClass is None:
-            raise ValueError(f"Site {site_name} is not supported.")
-        return SshClass(config_file)
+    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
+        return self.site_config.create_ssh_command(port, reverse_tunnel, nohup)
 
-    def __getattr__(self, name):
-        return getattr(self.ssh_instance, name)
+    def get_connection_info(self):
+        return self.site_config.get_connection_info()
+
+    def get_exec_task_cmd(self, nodenames):
+        return self.site_config.get_exec_task_cmd(nodenames)
+
+    def get_pre_rocket_string(self):
+        return self.site_config.get_pre_rocket_string()
+
+    def get_sleep_time(self):
+        return self.site_config.get_sleep_time()
