@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import base64
 
 class BaseSiteConfig(ABC):
     @abstractmethod
@@ -76,11 +77,12 @@ class PerlmutterConfig(BaseSiteConfig):
 
 class OrnlConfig(BaseSiteConfig):
     def build_ssh_command(self, port, reverse, remote_port=None):
+        decoded_password = base64.b64decode(self.task_manager.ssh.password).decode('utf-8')
         if reverse:
-            remote_port = remote_port or port
-            return f"ssh -NfR {port}:localhost:{remote_port} {self.ssh_manager.remote}"
+            remote_port = remote_port or port  # Use remote_port if provided, otherwise fall back to port
+            return f"expect -c 'spawn ssh -NfR {port}:localhost:{remote_port} {self.task_manager.ssh.remote}; expect \"Password:\"; send \"{decoded_password}\\r\"; expect eof'"
         else:
-            return f"ssh -NfL {port}:localhost:{port} {self.ssh_manager.remote}"
+            return f"expect -c 'spawn ssh -NfL {port}:localhost:{port} {self.task_manager.ssh.remote}; expect \"Password:\"; send \"{decoded_password}\\r\"; expect eof'"
 
     def build_container_command(self, nodename):
         return f"apptainer exec $HOME/vk-cmd_main.sif cp -r /vk-cmd `pwd`/{nodename}"
@@ -92,7 +94,6 @@ class OrnlConfig(BaseSiteConfig):
         return f"for nodename in {' '.join(nodenames)}; do srun --cpu-bind=none --nodes=1 sh $nodename.sh& done; wait; echo 'All nodes are done'"
 
     def get_pre_rocket_string(self):
-        import base64
         decoded_password = base64.b64decode(self.ssh_manager.password).decode('utf-8')
         return f"""
         conda activate fireworks
