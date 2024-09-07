@@ -83,7 +83,7 @@ class OrnlConfig(BaseSiteConfig):
             return f"ssh -NfL {port}:localhost:{port} {self.ssh_manager.remote}"
 
     def build_container_command(self, nodename):
-        return f"shifter --image={self.task_manager.jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{nodename}\""
+        return f"apptainer exec $HOME/vk-cmd_main.sif cp -r /vk-cmd `pwd`/{nodename}"
 
     def get_connection_info(self):
         return f"password: {self.ssh_manager.password}, remote: {self.ssh_manager.remote}, remote_proxy: {self.ssh_manager.remote_proxy}"
