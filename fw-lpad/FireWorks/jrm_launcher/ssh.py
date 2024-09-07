@@ -205,21 +205,21 @@ class TestSsh(BaseSsh):
         return cmd
 
 class SshManager:
+    SSH_INSTANCES = {
+        "perlmutter": PerlmutterSsh,
+        "ornl": OrnlSsh,
+        "test": TestSsh,
+        # Add new sites here
+    }
+
     def __init__(self, site_name, config_file):
         self.ssh_instance = self.get_ssh_instance(site_name, config_file)
 
     def get_ssh_instance(self, site_name, config_file):
-        if site_name == "perlmutter":
-            return PerlmutterSsh(config_file)
-        elif site_name == "ornl":
-            return OrnlSsh(config_file)
-        elif site_name == "test":
-            return TestSsh(config_file)
-        else:
+        SshClass = self.SSH_INSTANCES.get(site_name)
+        if SshClass is None:
             raise ValueError(f"Site {site_name} is not supported.")
+        return SshClass(config_file)
 
     def __getattr__(self, name):
-        """
-        Dynamically delegate method calls to the underlying ssh_instance.
-        """
         return getattr(self.ssh_instance, name)
