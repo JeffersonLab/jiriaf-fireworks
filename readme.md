@@ -33,7 +33,7 @@ To use JRM Launcher:
 
 1. Ensure you have the necessary prerequisites installed.
 2. Create a site-specific configuration file.
-3. Use the [`main.sh`](fw-lpad/FireWorks/jrm_launcher/main.sh) script to execute desired actions.
+3. Use the [`main.sh`](fw-lpad/FireWorks/main.sh) script to execute desired actions.
 
 For detailed information on prerequisites, configuration, usage examples, and customization, please refer to the comprehensive guide in the [fw-lpad readme](fw-lpad/readme.md) file of this repository.
 
