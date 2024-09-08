@@ -75,27 +75,27 @@ expect {
     -re "(%|#|\\$) $" {
         # Tunnel is established, keep the connection alive
         puts "Tunnel established successfully"
-        # Instead of exiting, we'll enter an infinite loop
-        send "while true; do sleep 3600; done\r"
+        send "echo 'Keeping connection alive...'\r"
+        expect {
+            "Keeping connection alive..." {
+                # Enter an infinite loop to keep the script running
+                while {1} {
+                    # Send a harmless command every 60 seconds to keep the connection active
+                    sleep 60
+                    send "echo 'Still alive'\r"
+                    expect {
+                        "Still alive" {}
+                        timeout {
+                            puts "Connection lost"
+                            exit 1
+                        }
+                    }
+                }
+            }
+        }
     }
     timeout {
         puts "Did not get shell prompt on ornl-worker"
         exit 1
     }
 }
-
-# Wait indefinitely to keep the script running and the tunnel open
-interact
-
-# The following part is no longer needed as we're not exiting the remote session
-# Exit the remote session
-# expect {
-#     -re "(%|#|\\$) $" {
-#         puts "Exited remote session successfully"
-#         exit 0
-#     }
-#     timeout {
-#         puts "Failed to exit remote session"
-#         exit 1
-#     }
-# }
