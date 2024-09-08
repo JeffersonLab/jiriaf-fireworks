@@ -1,5 +1,3 @@
-Here's a README for using the JRM Launcher:
-
 # JRM Launcher
 
 JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) instances on various computing environments.
