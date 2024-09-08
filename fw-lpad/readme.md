@@ -6,7 +6,7 @@ JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) ins
 
 ## Prerequisites
 
-- Python 3.7+
+- Python 3.9
 - FireWorks library
 - Required Python packages (install via `pip install -r requirements.txt`)
 
