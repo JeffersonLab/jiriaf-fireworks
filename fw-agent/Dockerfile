@@ -27,6 +27,7 @@ RUN apt-get update && \
     perl \
     libswitch-perl \
     software-properties-common \
+    less \
     && rm -rf /var/lib/apt/lists/*
 
 # Add deadsnakes PPA for Python 3.9
@@ -79,5 +80,7 @@ CMD /etc/init.d/munge start && /usr/sbin/slurmd && /bin/bash
 # Expose ports
 EXPOSE 6817 6818 6819
 
+COPY fw_config /fw_config
+
 # Run bash shell by default
-CMD ["bash"]
+ENTRYPOINT [ "bash" ]

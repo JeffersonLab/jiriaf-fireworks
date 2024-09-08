@@ -1,0 +1,26 @@
+slurm:
+  nodes: 2
+  constraint: cpu
+  walltime: 00:05:00
+  qos: debug
+  account: m3792
+
+jrm:
+  nodename: jrm-perlmutter
+  site: perlmutter
+  control_plane_ip: jiriaf2302
+  apiserver_port: 38687
+  kubeconfig: /global/homes/j/jlabtsai/run-vk/kubeconfig/jiriaf2302
+  image: docker:jlabtsai/vk-cmd:main
+  vkubelet_pod_ips:
+    - 172.17.0.1
+    - 172.17.0.1
+  custom_metrics_ports:
+    - 1234
+    - 1423
+  config_class:
+
+ssh:
+  remote_proxy: perlmutter
+  remote: jlabtsai@128.55.64.13
+  ssh_key: $HOME/.ssh/nersc
