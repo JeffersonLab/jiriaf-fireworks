@@ -20,7 +20,7 @@ jrm:
   
 ssh:
   remote_proxy:
-  remote: 172.30.161.5
+  remote: < this is the IP address of the remote machine where the fw-agent is running >
   ssh_key:
-  password: cGFzc3dvcmQK
+  password: < this is a password encoded in base64 >
   build_script: ./build-ssh-ornl.sh
