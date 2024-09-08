@@ -8,7 +8,7 @@ The core functionality of JRM Launcher revolves around managing network connecti
 
 [![JRM Network Diagram](markdown/jrm-network.png)](markdown/jrm-network.png)
 
-This diagram illustrates the key components and connections managed by JRM Launcher, including:
+This diagram illustrates the key components and connections managed by JRM Launcher (JRM-FW), including:
 
 1. SSH connections to remote servers
 2. Port forwarding for various services
