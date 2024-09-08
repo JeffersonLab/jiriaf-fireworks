@@ -4,7 +4,7 @@ JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) 
 
 ## Network Architecture
 
-The core functionality of JRM Launcher revolves around managing network connections between different components of a distributed computing environment. The network architecture is visually represented in the [jrm-network.png](jrm-network.png) file included in this repository.
+The core functionality of JRM Launcher revolves around managing network connections between different components of a distributed computing environment. The network architecture is visually represented in the [jrm-network](jrm-network.png) file included in this repository.
 
 [![JRM Network Diagram](markdown/jrm-network.png)](markdown/jrm-network.png)
 
@@ -25,22 +25,34 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 - SSH integration and port forwarding
 - Port management for workflows
 
-## Getting Started
+## Setup and Usage
 
-To get started with JRM Launcher:
+### Basic Usage
+
+To use JRM Launcher:
 
 1. Ensure you have the necessary prerequisites installed.
 2. Create a site-specific configuration file.
 3. Use the [`main.sh`](fw-lpad/FireWorks/jrm_launcher/main.sh) script to execute desired actions.
 
-For detailed information on prerequisites, configuration, usage examples, and customization, please refer to the comprehensive guide in the [readme.md](fw-lpad/readme.md) file of this repository. This guide includes information about the [`main.sh`](fw-lpad/FireWorks/jrm_launcher/main.sh) script and how to use it.
+For detailed information on prerequisites, configuration, usage examples, and customization, please refer to the comprehensive guide in the [fw-lpad readme](fw-lpad/readme.md) file of this repository.
+
+### Remote Launch with FireWorks Agent
+
+JRM Launcher supports remote launch of JRMs using FireWorks agents, enabling efficient management of workflows across different computing environments. Key points:
+
+- Set up FireWorks agents on remote compute sites
+- Configure site-specific settings in the `fw_config` directory
+- Use `qlaunch` command to start the FireWorks agent on remote sites
+
+For detailed instructions on setting up and using FireWorks agents, refer to the [fw-agent readme](fw-agent/readme.md).
 
 ## Extensibility
 
-JRM Launcher is designed to be easily extensible to support various computing environments. For information on how to add support for new environments, refer to the "Customization" section in the main [readme.md](fw-lpad/readme.md) file.
+JRM Launcher is designed to be easily extensible to support various computing environments. For information on how to add support for new environments, refer to the "Customization" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 
 ## Troubleshooting
 
-For troubleshooting tips and logging information, please consult the "Troubleshooting" section in the main [readme.md](fw-lpad/readme.md) file.
+For troubleshooting tips and logging information, please consult the "Troubleshooting" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 
 By leveraging JRM Launcher, you can simplify the management of complex network connections in distributed computing environments, allowing you to focus on your workflows rather than infrastructure management.
