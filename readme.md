@@ -27,9 +27,9 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 
 ## Setup and Usage
 
-### Basic Usage
+### Basic Usage of JRM-FW
 
-To use JRM Launcher (JRM-FW):
+To use JRM Launcher:
 
 1. Ensure you have the necessary prerequisites installed.
 2. Create a site-specific configuration file.
