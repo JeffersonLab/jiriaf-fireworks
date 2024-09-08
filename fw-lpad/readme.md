@@ -138,3 +138,34 @@ To add support for a new computing environment:
 - Verify that the necessary ports are available and not blocked by firewalls.
 
 For more detailed information about each component, refer to the inline documentation in the respective Python files.
+
+## Starting the Container
+
+To start the JRM Launcher container, use the following Docker command:
+
+```bash
+docker run --name=jrm-fw-lpad -itd --rm --net=host \
+  -v ./test-config.yaml:/fw/test-config.yaml \
+  -v $logs:/fw/logs \
+  -v ./perl-config.yaml:/fw/per-config.yaml \
+  -v ./ornl-config.yaml:/fw/ornl-config.yaml \
+  -v `pwd`/port_table.yaml:/fw/port_table.yaml \
+  -v $HOME/.ssh/nersc:/root/.ssh/nersc \
+  jlabtsai/jrm-fw-lpad:main
+```
+
+This command does the following:
+
+- Creates a container named `jrm-fw-lpad`
+- Runs in detached mode (`-d`) with an interactive TTY (`-it`)
+- Removes the container when it exits (`--rm`)
+- Uses host networking (`--net=host`)
+- Mounts several configuration files and directories:
+  - `test-config.yaml`, `perl-config.yaml`, and `ornl-config.yaml` for different environments
+  - A logs directory
+  - `port_table.yaml` for port management
+  - SSH key for NERSC access
+
+Make sure to replace `$logs` with the actual path to your logs directory before running the command. 
+
+Once the container is created, users should log in to the container and use `main.sh` to operate. We recommend using only one container to manipulate multiple launches of JRMs!
