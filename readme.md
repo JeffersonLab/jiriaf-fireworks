@@ -29,7 +29,7 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 
 ### Basic Usage
 
-To use JRM Launcher:
+To use JRM Launcher (JRM-FW):
 
 1. Ensure you have the necessary prerequisites installed.
 2. Create a site-specific configuration file.
@@ -37,7 +37,7 @@ To use JRM Launcher:
 
 For detailed information on prerequisites, configuration, usage examples, and customization, please refer to the comprehensive guide in the [fw-lpad readme](fw-lpad/readme.md) file of this repository.
 
-### Remote Launch with FireWorks Agent
+### Remote Launch with FireWorks Agent (FW Agent)
 
 JRM Launcher supports remote launch of JRMs using FireWorks agents, enabling efficient management of workflows across different computing environments. Key points:
 
