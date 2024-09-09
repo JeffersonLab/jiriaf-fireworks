@@ -2,6 +2,91 @@
 
 JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) instances across various computing environments, with a focus on facilitating complex network connections in distributed computing setups.
 
+## Quick Start Guide
+
+### 1. Setup fw-lpad (JRM Launcher)
+
+1. Ensure you have the necessary prerequisites installed:
+   - MongoDB (for storing workflow of JRM launches)
+   - Kubernetes API server running
+   - Valid kubeconfig file for the Kubernetes cluster
+   - Docker
+
+2. Create a site-specific configuration file based on the template in `fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml`.
+
+3. Prepare necessary files and directories:
+   - Site configuration file (e.g., `perlmutter_config.yaml`)
+   - Directory for logs
+   - `port_table.yaml` file
+   - SSH key (e.g., for NERSC access)
+
+4. Copy the kubeconfig file to the remote site:
+   ```bash
+   scp /path/to/local/kubeconfig user@remote:/path/to/remote/kubeconfig
+   ```
+
+5. Start the JRM Launcher container:
+   ```bash
+   export logs=/path/to/your/logs/directory
+   docker run --name=jrm-fw-lpad -itd --rm --net=host \
+     -v ./perlmutter_config.yaml:/fw/perlmutter_config.yaml \
+     -v $logs:/fw/logs \
+     -v `pwd`/port_table.yaml:/fw/port_table.yaml \
+     -v $HOME/.ssh/nersc:/root/.ssh/nersc \
+     jlabtsai/jrm-fw-lpad:main
+   ```
+
+### 2. Setup fw-agent (FireWorks Agent)
+
+1. On the remote compute site, create a new directory for your FireWorks agent:
+   ```bash
+   mkdir fw-agent
+   cd fw-agent
+   ```
+
+2. Create a Python virtual environment and activate it:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Copy the `requirements.txt` file and install the required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Copy the `fw_config` directory containing site-specific configuration files.
+
+5. Configure the FireWorks files (`my_fworker.yaml`, `my_qadapter.yaml`, `my_launchpad.yaml`, `queue_template.yaml`) for your specific compute site.
+
+### 3. Launch JRM and Manage Workflows
+
+1. On the fw-lpad machine, log into the container:
+   ```bash
+   docker exec -it jrm-fw-lpad /bin/bash
+   ```
+
+2. Add a workflow:
+   ```bash
+   ./main.sh add_wf --site_config_file /fw/perlmutter_config.yaml
+   ```
+
+3. On the remote compute site (fw-agent), start the FireWorks agent:
+   ```bash
+   qlaunch -r rapidfire
+   ```
+
+4. Manage workflows and connections using the `main.sh` script on the fw-lpad machine:
+   - Delete a workflow: `./main.sh delete_wf --fw_id <workflow_id>`
+   - Delete ports: `./main.sh delete_ports --start <start_port> --end <end_port>`
+   - Connect to services:
+     - Database: `./main.sh connect --connect_type db --site_config_file /path/to/config.yaml`
+     - API server: `./main.sh connect --connect_type apiserver --port <port> --site_config_file /path/to/config.yaml`
+     - Metrics server: `./main.sh connect --connect_type metrics --port <port> --nodename <node> --site_config_file /path/to/config.yaml`
+     - Custom metrics: `./main.sh connect --connect_type custom_metrics --mapped_port <port1> --custom_metrics_port <port2> --nodename <node> --site_config_file /path/to/config.yaml`
+
+For more detailed usage instructions, refer to the [fw-lpad readme](fw-lpad/readme.md) and [fw-agent readme](fw-agent/readme.md).
+
 ## Network Architecture
 
 The core functionality of JRM Launcher revolves around managing network connections between different components of a distributed computing environment. The network architecture is visually represented in the [jrm-network](jrm-network.png) file included in this repository.
@@ -24,28 +109,7 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 - Site-specific configurations
 - SSH integration and port forwarding
 - Port management for workflows
-
-## Setup and Usage
-
-### Basic Usage of JRM-FW
-
-To use JRM Launcher:
-
-1. Ensure you have the necessary prerequisites installed.
-2. Create a site-specific configuration file.
-3. Use the [`main.sh`](fw-lpad/FireWorks/main.sh) script to execute desired actions.
-
-For detailed information on prerequisites, configuration, usage examples, and customization, please refer to the comprehensive guide in the [fw-lpad readme](fw-lpad/readme.md) file of this repository.
-
-### Remote Launch with FireWorks Agent (FW Agent)
-
-JRM Launcher supports remote launch of JRMs using FireWorks agents, enabling efficient management of workflows across different computing environments. Key points:
-
-- Set up FireWorks agents on remote compute sites
-- Configure site-specific settings in the `fw_config` directory
-- Use `qlaunch` command to start the FireWorks agent on remote sites
-
-For detailed instructions on setting up and using FireWorks agents, refer to the [fw-agent readme](fw-agent/readme.md).
+- Extensibility to support new computing environments
 
 ## Extensibility
 
@@ -54,5 +118,4 @@ JRM Launcher is designed to be easily extensible to support various computing en
 ## Troubleshooting
 
 For troubleshooting tips and logging information, please consult the "Troubleshooting" section in the [fw-lpad readme](fw-lpad/readme.md) file.
-
 By leveraging JRM Launcher, you can simplify the management of complex network connections in distributed computing environments, allowing you to focus on your workflows rather than infrastructure management.
