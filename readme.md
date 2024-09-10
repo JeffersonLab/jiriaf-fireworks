@@ -2,90 +2,302 @@
 
 JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) instances across various computing environments, with a focus on facilitating complex network connections in distributed computing setups.
 
-## Quick Start Guide
+## Detailed Step-by-Step Guide
 
-### 1. Setup fw-lpad (JRM Launcher)
+### Part 1: Setting up JRM Launcher (fw-lpad)
 
-1. Ensure you have the necessary prerequisites installed:
+For more detailed instructions on setting up the JRM Launcher, please refer to the [@fw-lpad/readme.md](fw-lpad/readme.md).
+
+1. Install prerequisites:
    - MongoDB (for storing workflow of JRM launches)
-   - Kubernetes API server running
+   - Kubernetes API server
    - Valid kubeconfig file for the Kubernetes cluster
    - Docker
+   - Python 3.9 (for developers)
 
-2. Create a site-specific configuration file based on the template in `fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml`.
+2. Set up MongoDB for storing Fireworks workflows:
+   ```bash
+   # Create and start a MongoDB container
+   docker run -d -p 27017:27017 --name mongodb-container \
+     -v $HOME/JIRIAF/mongodb/data:/data/db mongo:latest
 
-3. Prepare necessary files and directories:
-   - Site configuration file (e.g., `perlmutter_config.yaml`)
-   - Directory for logs
-   - `port_table.yaml` file
-   - SSH key (e.g., for NERSC access)
+   # Wait for MongoDB to start (about 10 seconds), then create a new database and user
+   docker exec -it mongodb-container mongosh --eval '
+     db.getSiblingDB("jiriaf").createUser({
+       user: "jiriaf",
+       pwd: "jiriaf",
+       roles: [{role: "readWrite", db: "jiriaf"}]
+     })
+   '
+   ```
 
-4. Copy the kubeconfig file to the remote site:
+3. Prepare the site configuration file:
+   - Use the template in `fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml`
+   - Create a configuration file for your specific site (e.g., perlmutter_config.yaml or ornl_config.yaml)
+
+   Example configurations:
+   ```yaml:perlmutter_config.yaml
+   slurm:
+     nodes: 1
+     constraint: cpu
+     walltime: 00:10:00
+     qos: debug
+     account: m3792
+     reservation: # 100G
+
+   jrm:
+     nodename: jrm-perlmutter
+     site: perlmutter
+     control_plane_ip: jiriaf2302
+     apiserver_port: 38687
+     kubeconfig: /global/homes/j/jlabtsai/run-vk/kubeconfig/jiriaf2302
+     image: docker:jlabtsai/vk-cmd:main
+     vkubelet_pod_ips:
+       - 172.17.0.1
+     custom_metrics_ports: [2221, 1776, 8088, 2222]
+     config_class:
+
+   ssh:
+     remote_proxy: jlabtsai@perlmutter.nersc.gov
+     remote: jlabtsai@128.55.64.13
+     ssh_key: /root/.ssh/nersc
+     password:
+     build_script:
+   ```
+
+   ```yaml:ornl_config.yaml
+   slurm:
+     nodes: 1
+     constraint: ejfat
+     walltime: 00:10:00
+     qos: normal
+     account: csc266
+     reservation: #ejfat_demo
+
+   jrm:
+     nodename: jrm-ornl
+     site: ornl
+     control_plane_ip: jiriaf2302
+     apiserver_port: 38687
+     kubeconfig: /ccsopen/home/jlabtsai/run-vk/kubeconfig/jiriaf2302
+     image: docker:jlabtsai/vk-cmd:main
+     vkubelet_pod_ips:
+       - 172.17.0.1
+     custom_metrics_ports: [2221, 1776, 8088, 2222]
+     config_class:
+
+   ssh:
+     remote_proxy:
+     remote: 172.30.161.5
+     ssh_key:
+     password: < user password in base64 >
+     build_script: /root/build-ssh-ornl.sh
+   ```
+
+4. Prepare necessary files and directories:
+   - Create a directory for logs
+   - Create a `port_table.yaml` file
+   - Ensure you have the necessary SSH key (e.g., for NERSC access)
+   - Create a `my_launchpad.yaml` file with the MongoDB connection details:
+     ```yaml:my_launchpad.yaml
+     host: localhost
+     logdir: <path to logs>
+     mongoclient_kwargs: {}
+     name: jiriaf
+     password: jiriaf
+     port: 27017
+     strm_lvl: INFO
+     uri_mode: false
+     user_indices: []
+     username: jiriaf
+     wf_user_indices: []
+     ```
+
+5. Copy the kubeconfig file to the remote site:
    ```bash
    scp /path/to/local/kubeconfig user@remote:/path/to/remote/kubeconfig
    ```
 
-5. Start the JRM Launcher container:
+6. Start the JRM Launcher container:
    ```bash
    export logs=/path/to/your/logs/directory
    docker run --name=jrm-fw-lpad -itd --rm --net=host \
-     -v ./perlmutter_config.yaml:/fw/perlmutter_config.yaml \
+     -v ./your_site_config.yaml:/fw/your_site_config.yaml \
      -v $logs:/fw/logs \
      -v `pwd`/port_table.yaml:/fw/port_table.yaml \
      -v $HOME/.ssh/nersc:/root/.ssh/nersc \
+     -v `pwd`/my_launchpad.yaml:/fw/util/my_launchpad.yaml \
      jlabtsai/jrm-fw-lpad:main
    ```
 
-### 2. Setup fw-agent (FireWorks Agent)
+7. Verify the container is running:
+   ```bash
+   docker ps
+   ```
 
-1. On the remote compute site, create a new directory for your FireWorks agent:
+8. Log into the container:
+   ```bash
+   docker exec -it jrm-fw-lpad /bin/bash
+   ```
+
+9. Add a workflow:
+   ```bash
+   ./main.sh add_wf /fw/your_site_config.yaml
+   ```
+
+10. Note the workflow ID provided for future reference
+
+### Part 2: Setting up FireWorks Agent (fw-agent) on Remote Compute Site
+
+For more detailed instructions on setting up the FireWorks Agent, please refer to the [@fw-agent/readme.md](fw-agent/readme.md).
+
+1. SSH into the remote compute site
+
+2. Create a new directory for your FireWorks agent:
    ```bash
    mkdir fw-agent
    cd fw-agent
    ```
 
-2. Create a Python virtual environment (python 3.9) and activate it:
+3. Copy the `requirements.txt` file to this directory (you may need to transfer it from your local machine)
+
+4. Create a Python virtual environment and activate it:
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
+   python3.9 -m venv jrm_launcher
+   source jrm_launcher/bin/activate
    ```
 
-3. Copy the `requirements.txt` file and install the required packages:
+5. Install the required packages:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Copy the `fw_config` directory containing site-specific configuration files.
-
-5. Configure the FireWorks files (`my_fworker.yaml`, `my_qadapter.yaml`, `my_launchpad.yaml`, `queue_template.yaml`) for your specific compute site.
-
-### 3. Launch JRM and Manage Workflows
-
-1. On the fw-lpad machine, log into the container:
+6. Create the `fw_config` directory and necessary configuration files:
    ```bash
-   docker exec -it jrm-fw-lpad /bin/bash
+   mkdir fw_config
+   cd fw_config
    ```
 
-2. Add a workflow:
+7. Create and configure the following files in the `fw_config` directory:
+   - `my_fworker.yaml`:
+     ```yaml:my_fworker.yaml
+     # For Perlmutter:
+     category: perlmutter
+     name: perlmutter
+     query: '{}'
+
+     # For ORNL:
+     # category: ornl
+     # name: ornl
+     # query: '{}'
+     ```
+   - `my_qadapter.yaml`:
+     ```yaml:my_qadapter.yaml
+     _fw_name: CommonAdapter
+     _fw_q_type: SLURM
+     _fw_template_file: <path to queue_template.yaml>
+     rocket_launch: rlaunch -c <path to fw_config> singleshot
+     nodes: 
+     walltime:
+     constraint:
+     account:
+     job_name:
+     logdir: <path to logs>
+     pre_rocket:
+     post_rocket:
+     ```
+   - `my_launchpad.yaml`:
+     ```yaml:my_launchpad.yaml
+     host: localhost
+     logdir: <path to logs>
+     mongoclient_kwargs: {}
+     name: jiriaf
+     password: jiriaf
+     port: 27017
+     strm_lvl: INFO
+     uri_mode: false
+     user_indices: []
+     username: jiriaf
+     wf_user_indices: []
+     ```
+   - `queue_template.yaml`:
+     ```yaml:queue_template.yaml
+     #!/bin/bash -l
+
+     #SBATCH --nodes=$${nodes}
+     #SBATCH --ntasks=$${ntasks}
+     #SBATCH --ntasks-per-node=$${ntasks_per_node}
+     #SBATCH --cpus-per-task=$${cpus_per_task}
+     #SBATCH --mem=$${mem}
+     #SBATCH --gres=$${gres}
+     #SBATCH --qos=$${qos}
+     #SBATCH --time=$${walltime}
+     #SBATCH --partition=$${queue}
+     #SBATCH --account=$${account}
+     #SBATCH --job-name=$${job_name}
+     #SBATCH --license=$${license}
+     #SBATCH --output=$${job_name}-%j.out
+     #SBATCH --error=$${job_name}-%j.error
+     #SBATCH --constraint=$${constraint}
+     #SBATCH --reservation=$${reservation}
+
+     $${pre_rocket}
+     cd $${launch_dir}
+     $${rocket_launch}
+     $${post_rocket}
+     ```
+
+8. Test the connection to the LaunchPad database:
    ```bash
-   ./main.sh add_wf /fw/perlmutter_config.yaml
+   lpad -c <path to fw_config> reset
+   ```
+   If prompted "Are you sure? This will RESET your LaunchPad. (Y/N)", type 'N' to cancel
+
+9. Run the FireWorks agent:
+   ```bash
+   qlaunch -c <path to fw_config> -r rapidfire
    ```
 
-3. On the remote compute site (fw-agent), start the FireWorks agent:
-   ```bash
-   qlaunch -r rapidfire
-   ```
+### Managing Workflows and Connections
 
-4. Manage workflows and connections using the `main.sh` script on the fw-lpad machine:
-   - Delete a workflow: `./main.sh delete_wf <workflow_id>`
-   - Delete ports: `./main.sh delete_ports <start_port> <end_port>`
-   - Connect to services:
-     - Database: `./main.sh connect db /fw/perlmutter_config.yaml`
-     - API server: `./main.sh connect apiserver 35679 /fw/perlmutter_config.yaml`
-     - Metrics server: `./main.sh connect metrics 10001 vk-node-1 /fw/perlmutter_config.yaml`
-     - Custom metrics: `./main.sh connect custom_metrics 20001 8080 vk-node-1 /fw/perlmutter_config.yaml`
+Use the following commands on the fw-lpad machine to manage workflows and connections:
 
-For more detailed usage instructions, refer to the [fw-lpad readme](fw-lpad/readme.md) and [fw-agent readme](fw-agent/readme.md).
+- Delete a workflow:
+  ```bash
+  ./main.sh delete_wf <workflow_id>
+  ```
+- Delete ports:
+  ```bash
+  ./main.sh delete_ports <start_port> <end_port>
+  ```
+- Connect to database:
+  ```bash
+  ./main.sh connect db /fw/your_site_config.yaml
+  ```
+- Connect to API server:
+  ```bash
+  ./main.sh connect apiserver 35679 /fw/your_site_config.yaml
+  ```
+- Connect to metrics server:
+  ```bash
+  ./main.sh connect metrics 10001 vk-node-1 /fw/your_site_config.yaml
+  ```
+- Connect to custom metrics:
+  ```bash
+  ./main.sh connect custom_metrics 20001 8080 vk-node-1 /fw/your_site_config.yaml
+  ```
+
+## Troubleshooting
+
+- Check logs in the `LOG_PATH` directory for SSH connection issues
+- Ensure all configuration files are correctly formatted and contain required fields
+- Verify that necessary ports are available and not blocked by firewalls
+- For fw-agent issues:
+  - Ensure the FireWorks LaunchPad is accessible from the remote compute site
+  - Verify that the Python environment has all necessary dependencies installed
+- Consult the FireWorks documentation for more detailed configuration and usage information
+
+For more detailed troubleshooting information, please refer to the [@fw-lpad/readme.md](fw-lpad/readme.md) and [@fw-agent/readme.md](fw-agent/readme.md) files.
 
 ## Network Architecture
 
@@ -115,7 +327,4 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 
 JRM Launcher is designed to be easily extensible to support various computing environments. For information on how to add support for new environments, refer to the "Customization" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 
-## Troubleshooting
-
-For troubleshooting tips and logging information, please consult the "Troubleshooting" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 By leveraging JRM Launcher, you can simplify the management of complex network connections in distributed computing environments, allowing you to focus on your workflows rather than infrastructure management.

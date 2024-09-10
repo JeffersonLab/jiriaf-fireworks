@@ -1,71 +1,75 @@
-# FireWorks Agent Setup
+# FireWorks Agent Setup on Remote Compute Sites
 
 This guide explains how to set up a FireWorks agent on remote compute sites using a Python environment and configuration files.
 
 ## Prerequisites
 
-- Python 3.9
+- Python 3.9 (available on the remote compute site)
 - Access to remote compute sites (e.g., ORNL, NERSC)
 
-## Setup Instructions
+## Remote Setup Instructions
 
-1. Create a new directory for your FireWorks agent:
+**Important: Perform all the following steps on the remote compute site.**
 
-```bash
-mkdir fw-agent
-cd fw-agent
-```
+1. SSH into the remote compute site.
 
-2. Copy the `requirements.txt` file into this directory:
+2. Create a new directory for your FireWorks agent:
 
+    ```bash
+    mkdir fw-agent
+    cd fw-agent
+    ```
 
-```1:21:fw-agent/requirements.txt
-click==8.0.3
-FireWorks==1.9.7
-Flask==2.0.2
-flask-paginate==2021.12.28
-gunicorn==20.1.0
-itsdangerous==2.0.1
-Jinja2==3.0.3
-MarkupSafe==2.0.1
-monty==2023.11.3
-prettytable==3.10.0
-pymongo==3.12.3
-python-dateutil==2.8.2
-ruamel.yaml==0.17.20
-ruamel.yaml.clib==0.2.6
-six==1.16.0
-tabulate==0.8.9
-tqdm==4.62.3
-wcwidth==0.2.13
-Werkzeug==2.0.2
-requests==2.26.0
+3. Copy the `requirements.txt` file into this directory (you may need to transfer it from your local machine):
 
-```
+    ```1:21:fw-agent/requirements.txt
+    click==8.0.3
+    FireWorks==1.9.7
+    Flask==2.0.2
+    flask-paginate==2021.12.28
+    gunicorn==20.1.0
+    itsdangerous==2.0.1
+    Jinja2==3.0.3
+    MarkupSafe==2.0.1
+    monty==2023.11.3
+    prettytable==3.10.0
+    pymongo==3.12.3
+    python-dateutil==2.8.2
+    ruamel.yaml==0.17.20
+    ruamel.yaml.clib==0.2.6
+    six==1.16.0
+    tabulate==0.8.9
+    tqdm==4.62.3
+    wcwidth==0.2.13
+    Werkzeug==2.0.2
+    requests==2.26.0
 
+    ```
 
-3. Create a virtual environment and activate it:
-Require python 3.9
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+4. Create a virtual environment and activate it (using Python 3.9 available on the remote site):
 
-4. Install the required packages:
+    ```bash
+    python3.9 -m venv jrm_launcher  
+    source jrm_launcher/bin/activate
+    ```
 
-```bash
-pip install -r requirements.txt
-```
+5. Install the required packages:
 
-5. Copy the `fw_config` directory and its contents into your `fw-agent` directory. This directory contains site-specific configuration files for different compute environments.
+    ```bash
+    pip install -r requirements.txt
+    ```
 
+6. Create the `fw_config` directory and the necessary configuration files:
 
-6. Configure the FireWorks files for ORNL:
+    ```bash
+    mkdir fw_config
+    cd fw_config
+    ```
 
    a. `my_fworker.yaml`: Defines the FireWorks worker settings
    ```yaml
-   category: < this should be the same as the site name in fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml >  
-   name: <recommended to be the same as the category>
+   category: < this must be the same as the site name in fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml >  
+   name: < recommended to be the same as the category >
    query: '{}'
    ```
 
@@ -99,10 +103,11 @@ pip install -r requirements.txt
    username: <fireworks database username>
    wf_user_indices: []
    ```
-
+    Please refer to the created database in [fw-lpad](../fw-lpad/readme.md) and fill in the correct information.
+    
    d. `queue_template.yaml`: Template for job submission scripts. 
 
-   Notice that the variables in "slurm:" in [fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml](fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml) overwrites the ones in this template. Other than that, the rest of the variables are defined here.
+   Notice that the variables in "slurm:" in [fw-lpad site_config_template.yaml](../fw-lpad/FireWorks/jrm_launcher/site_config_template.yaml) overwrites the ones in this template. Other than that, the rest of the variables are defined here.
 
     ```1:27:fw-agent/fw_config/ornl/queue_template.yaml
 
@@ -135,28 +140,32 @@ pip install -r requirements.txt
 
     ```
 
+## Running FireWorks Agent on the Remote Site
 
-## Running FireWorks Agent
+To run the FireWorks agent on the remote compute site:
 
-To run the FireWorks agent on a remote compute site:
+1. Ensure you're still connected to the remote compute site.
 
-1. SSH into the remote compute site.
-
-2. Navigate to your `fw-agent` directory.
+2. Navigate to your `fw-agent` directory on the remote site.
 
 3. Activate the virtual environment:
+    ```bash
+    source jrm_launcher/bin/activate
+    ```
 
-```bash
-source venv/bin/activate
-```
+4. Test the connection to the LaunchPad database:
+    ```bash
+    lpad -c <path to the fw_config> reset
+    ```
+    If you see the prompt "Are you sure? This will RESET your LaunchPad. (Y/N)", then your setup is correct and the connection is working. Type 'N' to cancel the reset operation.
 
-4. Run the FireWorks qlaunch command:
+5. Run the FireWorks qlaunch command:
+    ```bash
+    qlaunch -c <path to the fw_config> -r rapidfire
+    ```
+    Make sure you check `qlaunch -h` for more options.
 
-```bash
-qlaunch -r rapidfire
-```
-
-This command will start the FireWorks rapid-fire mode, which will continuously pull and run jobs from the LaunchPad.
+This command will start the FireWorks rapid-fire mode on the remote site, which will continuously pull and run jobs from the LaunchPad.
 
 ## Site-Specific Configuration
 

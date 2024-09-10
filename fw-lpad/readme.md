@@ -6,7 +6,6 @@ JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) ins
 - MongoDB (for storing workflow of JRM launches)
 - Kubernetes API server running
 - Valid kubeconfig file for the Kubernetes cluster
-- Prepare Fireworks config file `my_launchpad.yaml`. (see [fw-agent readme](../fw-agent/readme.md))
 - Python 3.9 (for developers)
   - Required Python packages (install via `pip install -r requirements.txt`)
 
@@ -57,7 +56,31 @@ Follow these steps to add a new workflow:
    ```
    Update the `jrm.kubeconfig` in your site config to point to this remote location.
 
-4. Start the JRM Launcher container:
+4. Set up MongoDB for storing Fireworks workflows:
+   a. Create and start a MongoDB container:
+      ```bash
+      docker run -d -p 27017:27017 --name mongodb-container \
+        -v $HOME/mongodb/data:/data/db mongo:latest
+      ```
+      This command starts a MongoDB container, maps port 27017, and mounts a volume for persistent data storage.
+
+   b. Wait for MongoDB to start (about 10 seconds), then create a new database and user:
+      ```bash
+      docker exec -it mongodb-container mongosh --eval '
+        db.getSiblingDB("< fireworks database name >").createUser({
+          user: "< fireworks database username >",
+          pwd: "< fireworks database password >",
+          roles: [{role: "readWrite", db: "< fireworks database name >"}]
+        })
+      '
+      ```
+      This command creates a new database named `< fireworks database name >` with a user `< fireworks database username >` (password: `< fireworks database password >`) having read and write permissions.
+
+   Note: The database information (name, username, and password) set up in this step will be used in your `my_launchpad.yaml`.
+
+5. Prepare Fireworks config file `my_launchpad.yaml` base one the previously created database. (see [fw-agent readme](../fw-agent/readme.md))
+
+6. Start the JRM Launcher container:
    ```bash
    export logs=/path/to/your/logs/directory
    docker run --name=jrm-fw-lpad -itd --rm --net=host \
@@ -69,22 +92,22 @@ Follow these steps to add a new workflow:
      jlabtsai/jrm-fw-lpad:main
    ```
 
-5. Verify the container is running:
+7. Verify the container is running:
    ```bash
    docker ps
    ```
 
-6. Log into the container:
+8. Log into the container:
    ```bash
    docker exec -it jrm-fw-lpad /bin/bash
    ```
 
-7. Inside the container, run the command to add a workflow:
+9. Inside the container, run the command to add a workflow:
    ```bash
    ./main.sh add_wf /fw/perlmutter_config.yaml
    ```
 
-8. The system will process your request and provide a workflow ID. Make note of this ID for future reference or management of the workflow.
+10. The system will process your request and provide a workflow ID. Make note of this ID for future reference or management of the workflow.
 
 Remember to replace placeholder values (like paths and SSH keys) with your actual data. Always ensure that your site configuration file contains the correct and up-to-date information before adding a workflow.
 
