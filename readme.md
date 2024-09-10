@@ -44,7 +44,7 @@ JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) 
    cd fw-agent
    ```
 
-2. Create a Python virtual environment and activate it:
+2. Create a Python virtual environment (python 3.9) and activate it:
    ```bash
    python3 -m venv venv
    source venv/bin/activate
