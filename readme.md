@@ -68,7 +68,7 @@ JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) 
 
 2. Add a workflow:
    ```bash
-   ./main.sh add_wf --site_config_file /fw/perlmutter_config.yaml
+   ./main.sh add_wf /fw/perlmutter_config.yaml
    ```
 
 3. On the remote compute site (fw-agent), start the FireWorks agent:
@@ -77,13 +77,13 @@ JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) 
    ```
 
 4. Manage workflows and connections using the `main.sh` script on the fw-lpad machine:
-   - Delete a workflow: `./main.sh delete_wf --fw_id <workflow_id>`
-   - Delete ports: `./main.sh delete_ports --start <start_port> --end <end_port>`
+   - Delete a workflow: `./main.sh delete_wf <workflow_id>`
+   - Delete ports: `./main.sh delete_ports <start_port> <end_port>`
    - Connect to services:
-     - Database: `./main.sh connect --connect_type db --site_config_file /path/to/config.yaml`
-     - API server: `./main.sh connect --connect_type apiserver --port <port> --site_config_file /path/to/config.yaml`
-     - Metrics server: `./main.sh connect --connect_type metrics --port <port> --nodename <node> --site_config_file /path/to/config.yaml`
-     - Custom metrics: `./main.sh connect --connect_type custom_metrics --mapped_port <port1> --custom_metrics_port <port2> --nodename <node> --site_config_file /path/to/config.yaml`
+     - Database: `./main.sh connect db /fw/perlmutter_config.yaml`
+     - API server: `./main.sh connect apiserver 35679 /fw/perlmutter_config.yaml`
+     - Metrics server: `./main.sh connect metrics 10001 vk-node-1 /fw/perlmutter_config.yaml`
+     - Custom metrics: `./main.sh connect custom_metrics 20001 8080 vk-node-1 /fw/perlmutter_config.yaml`
 
 For more detailed usage instructions, refer to the [fw-lpad readme](fw-lpad/readme.md) and [fw-agent readme](fw-agent/readme.md).
 

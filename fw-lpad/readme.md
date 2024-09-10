@@ -6,6 +6,7 @@ JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) ins
 - MongoDB (for storing workflow of JRM launches)
 - Kubernetes API server running
 - Valid kubeconfig file for the Kubernetes cluster
+- Prepare Fireworks config file `my_launchpad.yaml`. (see [fw-agent readme](../fw-agent/readme.md))
 - Python 3.9 (for developers)
   - Required Python packages (install via `pip install -r requirements.txt`)
 
@@ -64,6 +65,7 @@ Follow these steps to add a new workflow:
      -v $logs:/fw/logs \
      -v `pwd`/port_table.yaml:/fw/port_table.yaml \
      -v $HOME/.ssh/nersc:/root/.ssh/nersc \
+     -v `pwd`/my_launchpad.yaml:/fw/util/my_launchpad.yaml \
      jlabtsai/jrm-fw-lpad:main
    ```
 
@@ -79,7 +81,7 @@ Follow these steps to add a new workflow:
 
 7. Inside the container, run the command to add a workflow:
    ```bash
-   ./main.sh add_wf --site_config_file /fw/perlmutter_config.yaml
+   ./main.sh add_wf /fw/perlmutter_config.yaml
    ```
 
 8. The system will process your request and provide a workflow ID. Make note of this ID for future reference or management of the workflow.
@@ -150,37 +152,37 @@ Available actions:
 
 1. Add a new workflow:
 ```bash
-./main.sh add_wf --site_config_file /path/to/perlmutter_config.yaml
+./main.sh add_wf /fw/perlmutter_config.yaml
 ```
 
 2. Delete a workflow:
 ```bash
-./main.sh delete_wf --fw_id 12345
+./main.sh delete_wf 12345
 ```
 
 3. Delete ports in a range:
 ```bash
-./main.sh delete_ports --start 10000 --end 20000
+./main.sh delete_ports 10000 20000
 ```
 
 4. Connect to the database:
 ```bash
-./main.sh connect --connect_type db --site_config_file /path/to/perlmutter_config.yaml
+./main.sh connect db /fw/perlmutter_config.yaml
 ```
 
 5. Connect to the API server:
 ```bash
-./main.sh connect --connect_type apiserver --port 35679 --site_config_file /path/to/perlmutter_config.yaml
+./main.sh connect apiserver 35679 /fw/perlmutter_config.yaml
 ```
 
 6. Connect to the metrics server:
 ```bash
-./main.sh connect --connect_type metrics --port 10001 --nodename vk-node-1 --site_config_file /path/to/perlmutter_config.yaml
+./main.sh connect metrics 10001 vk-node-1 /fw/perlmutter_config.yaml
 ```
 
 7. Connect to custom metrics:
 ```bash
-./main.sh connect --connect_type custom_metrics --mapped_port 20001 --custom_metrics_port 8080 --nodename vk-node-1 --site_config_file /path/to/perlmutter_config.yaml
+./main.sh connect custom_metrics 20001 8080 vk-node-1 /fw/perlmutter_config.yaml
 ```
 
 ## Main Components

@@ -45,7 +45,7 @@ requests==2.26.0
 
 
 3. Create a virtual environment and activate it:
-
+Require python 3.9
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -90,13 +90,13 @@ pip install -r requirements.txt
    host: localhost
    logdir: < path to the logs >
    mongoclient_kwargs: {}
-   name: <recommended to be the same as the category>
-   password: <mongodb account password>
+   name: <fireworks database name >
+   password: <fireworks database password>
    port: 27017
    strm_lvl: INFO
    uri_mode: false
    user_indices: []
-   username: <mongodb account name>
+   username: <fireworks database username>
    wf_user_indices: []
    ```
 
