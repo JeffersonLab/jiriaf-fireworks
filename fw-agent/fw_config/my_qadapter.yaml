@@ -1,0 +1,12 @@
+_fw_name: CommonAdapter
+_fw_q_type: SLURM
+_fw_template_file: < path to the queue_template.yaml >
+rocket_launch: rlaunch -c < path to the fw_config > singleshot
+nodes: 
+walltime:
+constraint:
+account:
+job_name:
+logdir: < path to the logs >
+pre_rocket:
+post_rocket:

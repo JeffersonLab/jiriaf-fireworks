@@ -1,0 +1,11 @@
+host: localhost
+logdir: < path to the logs >
+mongoclient_kwargs: {}
+name: <fireworks database name >
+password: <fireworks database password>
+port: 27017
+strm_lvl: INFO
+uri_mode: false
+user_indices: []
+username: <fireworks database username>
+wf_user_indices: []
