@@ -1,5 +1,5 @@
 # Use an existing docker image as a base
-FROM python:3.10
+FROM python:3.9
 
 # Install necessary tools including SSH client
 RUN apt-get update && apt-get install -y \ 
