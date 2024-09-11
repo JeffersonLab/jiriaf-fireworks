@@ -2,6 +2,14 @@
 
 JRM Launcher is a tool designed to manage and launch Job Resource Manager (JRM) instances across various computing environments, with a focus on facilitating complex network connections in distributed computing setups.
 
+## JRM Launcher Deployment Overview
+
+The following flow chart provides an overview of the JRM Launcher deployment process:
+
+[![JRM Launcher Deployment Flow Chart](markdown/jrm_launcher_flow_chart.png)](markdown/jrm_launcher_flow_chart.png)
+
+This diagram illustrates the key steps involved in setting up and deploying the JRM Launcher, including the setup of both the fw-lpad and fw-agent components, as well as the workflow management process.
+
 ## Detailed Step-by-Step Guide
 
 ### Part 1: Setting up JRM Launcher (fw-lpad)
