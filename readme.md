@@ -17,11 +17,11 @@ This diagram illustrates the key steps involved in setting up and deploying the 
 For more detailed instructions on setting up the JRM Launcher, please refer to the [@fw-lpad/readme.md](fw-lpad/readme.md).
 
 1. Install prerequisites:
+   - Have valid NERSC account, ORNL user account, or other remote computing site account
    - MongoDB (for storing workflow of JRM launches)
    - Kubernetes API server
    - Valid kubeconfig file for the Kubernetes cluster
    - Docker
-   - Have valid NERSC account, ORNL user account, or other remote computing site account
    - Python 3.9 (for developers)
 
 2. Set up MongoDB for storing Fireworks workflows:

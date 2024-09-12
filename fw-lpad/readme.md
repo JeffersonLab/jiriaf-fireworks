@@ -3,6 +3,7 @@
 JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) instances on various computing environments.
 
 ## Prerequisites
+- Have valid NERSC account, ORNL user account, or other remote computing site account
 - MongoDB (for storing workflow of JRM launches)
 - Kubernetes API server running
 - Valid kubeconfig file for the Kubernetes cluster
