@@ -311,7 +311,7 @@ For more detailed troubleshooting information, please refer to the [@fw-lpad/rea
 
 The core functionality of JRM Launcher revolves around managing network connections between different components of a distributed computing environment. The network architecture is visually represented in the [jrm-network](jrm-network.png) file included in this repository.
 
-[![JRM Network Diagram](markdown/jrm-network.png)](markdown/jrm-network.png)
+[![JRM Network Diagram](markdown/jrm-network-flowchart.png)](markdown/jrm-network-flowchart.png)
 
 This diagram illustrates the key components and connections managed by JRM Launcher (JRM-FW), including:
 
