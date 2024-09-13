@@ -19,7 +19,7 @@ For more detailed instructions on setting up the JRM Launcher, please refer to t
 1. Install prerequisites:
    - Have valid NERSC account, ORNL user account, or other remote computing site account
    - MongoDB (for storing workflow of JRM launches)
-   - Kubernetes API server
+   - Kubernetes control plane installed
    - Valid kubeconfig file for the Kubernetes cluster
    - Docker
    - Python 3.9 (for developers)
