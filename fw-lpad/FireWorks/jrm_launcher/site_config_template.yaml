@@ -9,7 +9,7 @@ slurm:
 jrm:
   nodename: {{str}}              # The name of the node, e.g., "vk-ornl"
   site: {{str}}                  # Site name, e.g., "ornl"
-  control_plane_ip: {{str}}      # Control plane IP, e.g., "jiriaf2302"
+  control_plane_ip: {{str}}      # Control plane IP, e.g., "jiriaf2302". This is for record.
   apiserver_port: {{int}}        # API server port, e.g., 38687
   kubeconfig: {{str}}            # Path to the kubeconfig file, e.g., "/path/to/kubeconfig"
   image: {{str}}                 # Docker image, e.g., "docker:jlabtsai/vk-cmd:main"
