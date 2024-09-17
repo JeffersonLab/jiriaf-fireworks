@@ -149,12 +149,17 @@ For more detailed instructions on setting up the JRM Launcher, please refer to t
    docker exec -it jrm-fw-lpad /bin/bash
    ```
 
-9. Add a workflow:
+9. Initialize the launchpad: Inside the container run
+   ```bash
+   lpad -l /fw/util/my_launchpad.yaml reset
+   ```
+
+10. Add a workflow:
    ```bash
    ./main.sh add_wf /fw/your_site_config.yaml
    ```
 
-10. Note the workflow ID provided for future reference
+11. Note the workflow ID provided for future reference
 
 ### Part 2: Setting up FireWorks Agent (fw-agent) on Remote Compute Site
 
