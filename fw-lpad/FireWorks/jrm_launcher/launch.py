@@ -66,7 +66,7 @@ class BaseJrmManager:
             unique_id = str(uuid.uuid4())[:8]
             nodename = f"{self.jrm.nodename}-{unique_id}"
 
-            remote_ssh_cmds, kubelet_port = self.task.get_remote_ssh_cmds(nodename, available_kubelet_ports, available_custom_metrics_ports)
+            remote_ssh_cmds, kubelet_port = self.task.setup_ssh_connections(nodename, available_kubelet_ports, available_custom_metrics_ports)
             print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
             # print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])

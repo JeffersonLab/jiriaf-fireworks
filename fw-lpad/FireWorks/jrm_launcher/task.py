@@ -21,13 +21,13 @@ class TaskManager:
 
         self.jrm.site = jrm_instance.site  # Ensure the correct site is used for JIRIAF_SITE
 
-    def get_remote_ssh_cmds(self, nodename, available_kubelet_ports, available_custom_metrics_ports):
+    def setup_ssh_connections(self, nodename, available_kubelet_ports, available_custom_metrics_ports):
         kubelet_port = available_kubelet_ports.get()  # Get a port from the queue
         self.jrm_ports.append(kubelet_port)
 
         commands = [
-            self.site_config.build_ssh_command(self.jrm.apiserver_port, reverse=False),
-            self.site_config.build_ssh_command(kubelet_port, reverse=True)
+            self.site_config.setup_remote_ssh_cmd(self.jrm.apiserver_port, reverse=False),
+            self.site_config.setup_remote_ssh_cmd(kubelet_port, reverse=True)
         ]
 
         cmd = self.ssh.connect_metrics_server(kubelet_port, nodename)
@@ -48,7 +48,7 @@ class TaskManager:
 
     def execute_custom_metric_command(self, port, nodename, available_custom_metrics_ports):
         mapped_port = available_custom_metrics_ports.get()  # Get a port from the queue
-        command = self.site_config.build_ssh_command(mapped_port, reverse=True, remote_port=port)
+        command = self.site_config.setup_remote_ssh_cmd(mapped_port, reverse=True, remote_port=port)
         self.dict_mapped_custom_metrics_ports[mapped_port] = port
         cmd = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
         self.ssh_custom_metrics_cmds.append(cmd)
