@@ -84,7 +84,7 @@ class BaseSsh:
 
         self.port_nodename_table = PortNodenameTable()
 
-    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
+    def _setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
         raise NotImplementedError("Subclasses should implement this method.")
 
     def _log_response(self, response, logger_name, cmd, port, nodename=None):
@@ -119,28 +119,28 @@ class BaseSsh:
         return response
 
     def connect_db(self):
-        cmd = self._create_ssh_command(27017, reverse_tunnel=True)
+        cmd = self._setup_local_ssh_cmd(27017, reverse_tunnel=True)
         response = self._ensure_connection(cmd, 27017, 'connect_db_logger', "DB Connection")
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(27017, "DB Connection")
         return response
 
     def connect_apiserver(self, apiserver_port):
-        cmd = self._create_ssh_command(apiserver_port, reverse_tunnel=True)
+        cmd = self._setup_local_ssh_cmd(apiserver_port, reverse_tunnel=True)
         response = self._ensure_connection(cmd, apiserver_port, 'connect_apiserver_logger', "API Server")
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(apiserver_port, "API Server")
         return response
 
     def connect_metrics_server(self, kubelet_port, nodename):
-        cmd = self._create_ssh_command(kubelet_port, reverse_tunnel=False)
+        cmd = self._setup_local_ssh_cmd(kubelet_port, reverse_tunnel=False)
         response = self._ensure_connection(cmd, kubelet_port, 'connect_metrics_server_logger', nodename)
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(kubelet_port, nodename)
         return response
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
-        cmd = self._create_ssh_command(mapped_port, reverse_tunnel=False)
+        cmd = self._setup_local_ssh_cmd(mapped_port, reverse_tunnel=False)
         response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
         if response.get("status") == "Command completed":
             self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
@@ -154,8 +154,8 @@ class SshManager(BaseSsh):
         self.site_config = get_site_config(site_name)
         self.site_config.set_managers(self, self)
 
-    def _create_ssh_command(self, port, reverse_tunnel, nohup=True):
-        return self.site_config.create_ssh_command(port, reverse_tunnel, nohup)
+    def _setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
+        return self.site_config.setup_local_ssh_cmd(port, reverse_tunnel, nohup)
 
     def get_connection_info(self):
         return self.site_config.get_connection_info()

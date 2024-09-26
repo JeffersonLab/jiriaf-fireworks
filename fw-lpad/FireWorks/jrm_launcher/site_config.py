@@ -3,7 +3,7 @@ import base64
 
 class BaseSiteConfig(ABC):
     @abstractmethod
-    def build_ssh_command(self, port, reverse, remote_port=None):
+    def setup_remote_ssh_cmd(self, port, reverse, remote_port=None):
         pass
 
     @abstractmethod
@@ -23,7 +23,7 @@ class BaseSiteConfig(ABC):
         pass
 
     @abstractmethod
-    def create_ssh_command(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
         pass
 
     @abstractmethod
@@ -35,7 +35,7 @@ class BaseSiteConfig(ABC):
         self.ssh_manager = ssh_manager
 
 class PerlmutterConfig(BaseSiteConfig):
-    def build_ssh_command(self, port, reverse, remote_port=None):
+    def setup_remote_ssh_cmd(self, port, reverse, remote_port=None):
         if reverse:
             remote_port = remote_port or port
             return f"ssh -NfR {port}:localhost:{remote_port} {self.ssh_manager.remote}"
@@ -55,7 +55,7 @@ class PerlmutterConfig(BaseSiteConfig):
     def get_pre_rocket_string(self):
         return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}"
 
-    def create_ssh_command(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
         if reverse_tunnel:
             cmd = (
                 f"ssh -o StrictHostKeyChecking=no "
@@ -76,7 +76,7 @@ class PerlmutterConfig(BaseSiteConfig):
         return 3
 
 class OrnlConfig(BaseSiteConfig):
-    def build_ssh_command(self, port, reverse, remote_port=None):
+    def setup_remote_ssh_cmd(self, port, reverse, remote_port=None):
         decoded_password = base64.b64decode(self.task_manager.ssh.password).decode('utf-8')
         if reverse:
             remote_port = remote_port or port  # Use remote_port if provided, otherwise fall back to port
@@ -100,7 +100,7 @@ class OrnlConfig(BaseSiteConfig):
         expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
         """
 
-    def create_ssh_command(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
         if not self.ssh_manager.build_ssh_script or not self.ssh_manager.password:
             raise ValueError("Missing SSH parameters for ORNL site.")
 
@@ -115,7 +115,7 @@ class OrnlConfig(BaseSiteConfig):
         return 3
 
 class TestConfig(BaseSiteConfig):
-    def build_ssh_command(self, port, reverse, remote_port=None):
+    def setup_remote_ssh_cmd(self, port, reverse, remote_port=None):
         if reverse:
             remote_port = remote_port or port
             return f"ssh -NfR {port}:localhost:{remote_port} {self.ssh_manager.remote}"
@@ -135,7 +135,7 @@ class TestConfig(BaseSiteConfig):
     def get_pre_rocket_string(self):
         return f"ssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}"
 
-    def create_ssh_command(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
         if reverse_tunnel:
             cmd = (
                 f"ssh -o StrictHostKeyChecking=no "
