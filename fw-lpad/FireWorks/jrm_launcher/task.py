@@ -83,12 +83,15 @@ class TaskManager:
 
             ./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE &
 
-            # sleep \$JIRIAF_WALLTIME
             
-            if [ "$JIRIAF_WALLTIME" -ne 0 ]; then
+            if [ "$JIRIAF_WALLTIME" -eq 0 ]; then
+                # Keep the script alive indefinitely
+                while true; do
+                    sleep 3600  # Sleep for an hour and then check again
+                done
+            else
                 sleep $(echo $(squeue -h -j $SLURM_JOB_ID -o %L) | awk -F '[-:]' '{{if (NF==4) {{print ($1*86400) + ($2*3600) + ($3*60) + $4}} else if (NF==3) {{print ($1*3600) + ($2*60) + $3}} else {{print ($1*60) + $2}}}}')
+                pkill -f "./start.sh"
             fi
-            # echo "Walltime \$JIRIAF_WALLTIME is up. Stop the processes."
-            pkill -f "./start.sh"
         """)
         return script
