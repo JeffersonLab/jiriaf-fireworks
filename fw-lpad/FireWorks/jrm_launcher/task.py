@@ -11,7 +11,7 @@ class TaskManager:
         self.slurm = slurm_instance
         self.jrm = jrm_instance
         self.ssh = ssh_instance
-        self.site_config = get_site_config(jrm_instance.site)
+        self.site_config = get_site_config(jrm_instance.config_class if jrm_instance.config_class else jrm_instance.site)
         self.site_config.set_managers(self, ssh_instance)
 
         self.jrm_ports = []
@@ -44,7 +44,8 @@ class TaskManager:
                 for future in as_completed(futures):
                     commands.append(future.result())
 
-        return "; ".join(commands), kubelet_port
+        ssh_remote_commands = "echo 'no ssh remote commands'" if all(cmd == "" for cmd in commands) else "; ".join(commands)
+        return ssh_remote_commands, kubelet_port
 
     def execute_custom_metric_command(self, port, nodename, available_custom_metrics_ports):
         mapped_port = available_custom_metrics_ports.get()  # Get a port from the queue
@@ -56,7 +57,7 @@ class TaskManager:
         return command
 
     def get_jrm_script(self, nodename, kubelet_port, ssh_cmds, vkubelet_pod_ip):
-        jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":"))))
+        jrm_walltime = sum(int(x) * 60 ** i for i, x in enumerate(reversed(self.slurm.walltime.split(":")))) if self.slurm.walltime else 0
         container_command = self.site_config.build_container_command(nodename)
 
         script = textwrap.dedent(f"""
@@ -83,7 +84,10 @@ class TaskManager:
             ./start.sh $KUBECONFIG $NODENAME $VKUBELET_POD_IP $KUBELET_PORT $JIRIAF_WALLTIME $JIRIAF_NODETYPE $JIRIAF_SITE &
 
             # sleep \$JIRIAF_WALLTIME
-            sleep $(echo $(squeue -h -j $SLURM_JOB_ID -o %L) | awk -F '[-:]' '{{if (NF==4) {{print ($1*86400) + ($2*3600) + ($3*60) + $4}} else if (NF==3) {{print ($1*3600) + ($2*60) + $3}} else {{print ($1*60) + $2}}}}')
+            
+            if [ "$JIRIAF_WALLTIME" -ne 0 ]; then
+                sleep $(echo $(squeue -h -j $SLURM_JOB_ID -o %L) | awk -F '[-:]' '{{if (NF==4) {{print ($1*86400) + ($2*3600) + ($3*60) + $4}} else if (NF==3) {{print ($1*3600) + ($2*60) + $3}} else {{print ($1*60) + $2}}}}')
+            fi
             # echo "Walltime \$JIRIAF_WALLTIME is up. Stop the processes."
             pkill -f "./start.sh"
         """)

@@ -144,7 +144,7 @@ class BaseJrmManager:
 class JrmManager(BaseJrmManager):
     def __init__(self, slurm_instance, jrm_instance, ssh_instance):
         super().__init__(slurm_instance, jrm_instance, ssh_instance)
-        self.site_config = get_site_config(jrm_instance.config_class)
+        self.site_config = get_site_config(jrm_instance.config_class if jrm_instance.config_class else jrm_instance.site)
         self.site_config.set_managers(self.task, ssh_instance)
 
     def get_sleep_time(self):

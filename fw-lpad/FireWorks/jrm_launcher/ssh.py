@@ -151,7 +151,7 @@ class BaseSsh:
 class SshManager(BaseSsh):
     def __init__(self, site_name, config_file):
         super().__init__(config_file)
-        self.site_config = get_site_config(site_name)
+        self.site_config = get_site_config(self.node_config["jrm"].get("config_class") if self.node_config["jrm"].get("config_class") else site_name)
         self.site_config.set_managers(self, self)
 
     def _setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
