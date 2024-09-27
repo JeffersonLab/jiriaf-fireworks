@@ -136,7 +136,6 @@ class FABRICConfig(BaseSiteConfig):
                 f"ssh -o StrictHostKeyChecking=accept-new -NfR {port}:localhost:{port} {self.ssh_manager.remote_proxy}"
             )
         else:
-            print("remote_port: ", remote_port)
             remote_port = remote_port or port
             cmd = (
                 f"ssh -o StrictHostKeyChecking=accept-new -NfL *:{port}:localhost:{remote_port} {self.ssh_manager.remote_proxy}"
