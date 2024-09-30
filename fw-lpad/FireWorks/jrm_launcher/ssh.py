@@ -142,8 +142,10 @@ class BaseSsh:
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
         if "x" in str(custom_metrics_port):
             remote_port = custom_metrics_port.replace("x", "")
+            print(f"x found in custom_metrics_port, remote_port: {remote_port}")
         else:
             remote_port = None
+            print(f"x not found in custom_metrics_port, remote_port set as mapped_port: {mapped_port}")
         cmd = self._setup_local_ssh_cmd(mapped_port, reverse_tunnel=False, remote_port=remote_port)
         response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
         if response.get("status") == "Command completed":
