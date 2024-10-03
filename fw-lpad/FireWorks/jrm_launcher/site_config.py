@@ -70,6 +70,7 @@ class PerlmutterConfig(BaseSiteConfig):
                 f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_manager.ssh_key} -W %h:%p {self.ssh_manager.remote_proxy}' "
                 f"-NfL *:{port}:localhost:{port} {self.ssh_manager.remote}"
             )
+        print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
     def get_sleep_time(self):
@@ -109,6 +110,7 @@ class OrnlConfig(BaseSiteConfig):
             cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
         else:
             cmd = orig_cmd
+        print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
     def get_sleep_time(self):
@@ -140,6 +142,7 @@ class FABRICConfig(BaseSiteConfig):
             cmd = (
                 f"ssh -o StrictHostKeyChecking=accept-new -NfL *:{port}:localhost:{remote_port} {self.ssh_manager.remote_proxy}"
             )
+        print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
     def get_sleep_time(self):
