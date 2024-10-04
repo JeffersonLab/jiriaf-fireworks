@@ -2,6 +2,8 @@ import argparse
 from log import Logger
 from __init__ import LOG_PATH, LPAD
 import jrm, slurm, ssh, launch, manage_port
+from site_config import get_site_config
+import inspect
 
 class MainJrmManager:
     def __init__(self, config_file):
@@ -9,6 +11,8 @@ class MainJrmManager:
         self.jrm = jrm.ReadConfig(config_file)
         self.ssh = ssh.SshManager(self.jrm.site, config_file)
         self.jrm_manager = launch.JrmManager(self.slurm, self.jrm, self.ssh)
+        self.config_file = config_file
+        self.site_config = get_site_config(self.jrm.config_class if self.jrm.config_class else self.jrm.site)
 
     def add_jrm(self):
         result = self.jrm_manager.launch_jrm_script()
@@ -59,10 +63,61 @@ class MainJrmManager:
         # Save the port-nodename table after any connection
         self.ssh.ssh_instance.port_nodename_table.save_table()
 
+    def print_site_config(self):
+        print("Site Configuration:")
+        print("===================")
+        
+        print("\nSLURM Configuration:")
+        print(f"  Nodes: {self.slurm.nodes}")
+        print(f"  Constraint: {self.slurm.constraint}")
+        print(f"  Walltime: {self.slurm.walltime}")
+        print(f"  QoS: {self.slurm.qos}")
+        print(f"  Account: {self.slurm.account}")
+        if hasattr(self.slurm, 'reservation') and self.slurm.reservation:
+            print(f"  Reservation: {self.slurm.reservation}")
+        
+        print("\nJRM Configuration:")
+        print(f"  Nodename: {self.jrm.nodename}")
+        print(f"  Site: {self.jrm.site}")
+        print(f"  Control Plane IP: {self.jrm.control_plane_ip}")
+        print(f"  API Server Port: {self.jrm.apiserver_port}")
+        print(f"  Kubeconfig: {self.jrm.kubeconfig}")
+        print(f"  Image: {self.jrm.image}")
+        print(f"  VKubelet Pod IPs: {', '.join(self.jrm.vkubelet_pod_ips)}")
+        if hasattr(self.jrm, 'custom_metrics_ports') and self.jrm.custom_metrics_ports:
+            print(f"  Custom Metrics Ports: {', '.join(map(str, self.jrm.custom_metrics_ports))}")
+        print(f"  Config Class: {self.jrm.config_class or 'Not specified'}")
+        
+        print("\nSSH Configuration:")
+        print(f"  Remote Proxy: {self.ssh.remote_proxy}")
+        print(f"  Remote: {self.ssh.remote}")
+        print(f"  SSH Key: {self.ssh.ssh_key}")
+        if self.ssh.build_ssh_script:
+            print(f"  Build SSH Script: {self.ssh.build_ssh_script}")
+        if self.ssh.password:
+            print("  Password: [REDACTED]")
+        
+        print(f"\nConfiguration File: {self.config_file}")
 
+        print("\nBaseSiteConfig Implementation:")
+        print(f"  Class: {self.site_config.__class__.__name__}")
+        print("  Methods:")
+        for method_name in [
+            'setup_remote_ssh_cmd',
+            'build_container_command',
+            'get_connection_info',
+            'get_exec_task_cmd',
+            'get_pre_rocket_string',
+            'setup_local_ssh_cmd',
+            'get_sleep_time'
+        ]:
+            method = getattr(self.site_config, method_name)
+            print(f"    - {method_name}:")
+            print(f"      {inspect.getsource(method).strip()}")
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["add_wf", "delete_wf", "delete_ports", "connect"], help="Action to perform")
+    parser.add_argument("action", choices=["add_wf", "delete_wf", "delete_ports", "connect", "print_config"], help="Action to perform")
     parser.add_argument("--fw_id", help="Firework ID to delete")
     parser.add_argument("--start", type=int, help="Start port to delete")
     parser.add_argument("--end", type=int, help="End port to delete")
@@ -72,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("--nodename", type=str, help="Nodename for metrics or custom metrics connection.")
     parser.add_argument("--mapped_port", type=int, help="Mapped port for custom metrics connection.")
     parser.add_argument("--custom_metrics_port", type=int, help="Custom metrics port for custom metrics connection.")
+    parser.add_argument("--print_config", action="store_true", help="Print the site configuration")
 
     args = parser.parse_args()
 
@@ -94,3 +150,10 @@ if __name__ == "__main__":
         else:
             jrm_manager = MainJrmManager(args.site_config_file)
             jrm_manager.connect(args.connect_type, port=args.port, nodename=args.nodename, mapped_port=args.mapped_port, custom_metrics_port=args.custom_metrics_port)
+
+    elif args.action == "print_config":
+        if args.site_config_file is None:
+            print("Please provide a site configuration file using --site_config_file")
+        else:
+            jrm_manager = MainJrmManager(args.site_config_file)
+            jrm_manager.print_site_config()

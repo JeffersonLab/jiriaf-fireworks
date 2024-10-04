@@ -23,7 +23,7 @@ class BaseSiteConfig(ABC):
         pass
 
     @abstractmethod
-    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True, remote_port=None):
         pass
 
     @abstractmethod
@@ -55,7 +55,7 @@ class PerlmutterConfig(BaseSiteConfig):
     def get_pre_rocket_string(self):
         return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}"
 
-    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, remote_port=None, nohup=True):
         if reverse_tunnel:
             cmd = (
                 f"ssh -o StrictHostKeyChecking=no "
@@ -70,6 +70,7 @@ class PerlmutterConfig(BaseSiteConfig):
                 f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_manager.ssh_key} -W %h:%p {self.ssh_manager.remote_proxy}' "
                 f"-NfL *:{port}:localhost:{port} {self.ssh_manager.remote}"
             )
+        print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
     def get_sleep_time(self):
@@ -85,7 +86,7 @@ class OrnlConfig(BaseSiteConfig):
             return f"expect -c 'spawn ssh -NfL {port}:localhost:{port} {self.task_manager.ssh.remote}; expect \"Password:\"; send \"{decoded_password}\\r\"; expect eof'"
 
     def build_container_command(self, nodename):
-        return f"apptainer exec $HOME/vk-cmd_main.sif cp -r /vk-cmd `pwd`/{nodename}"
+        return f"apptainer exec {self.task_manager.jrm.image} cp -r /vk-cmd `pwd`/{nodename}"
 
     def get_connection_info(self):
         return f"password: {self.ssh_manager.password}, remote: {self.ssh_manager.remote}, remote_proxy: {self.ssh_manager.remote_proxy}"
@@ -100,7 +101,7 @@ class OrnlConfig(BaseSiteConfig):
         expect -c 'spawn ssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}; expect "Password:"; send "{decoded_password}\\r"; expect eof'
         """
 
-    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, remote_port=None, nohup=True):
         if not self.ssh_manager.build_ssh_script or not self.ssh_manager.password:
             raise ValueError("Missing SSH parameters for ORNL site.")
 
@@ -109,6 +110,39 @@ class OrnlConfig(BaseSiteConfig):
             cmd = f"nohup {orig_cmd} > /dev/null 2>&1 &"
         else:
             cmd = orig_cmd
+        print(f"setup_local_ssh_cmd: {cmd}")
+        return cmd
+
+    def get_sleep_time(self):
+        return 3
+
+
+class FABRICConfig(BaseSiteConfig):
+    def setup_remote_ssh_cmd(self, port, reverse, remote_port=None):
+        return ""
+    def build_container_command(self, nodename):
+        return f"container_id=\"$(docker run -itd --rm --name vk-cmd {self.task_manager.jrm.image})\"; docker cp $container_id:/vk-cmd `pwd`/{nodename}; docker stop $container_id"
+
+    def get_connection_info(self):
+        return f"remote_proxy: {self.ssh_manager.remote_proxy}"
+
+    def get_exec_task_cmd(self, nodenames):
+        return f"for nodename in {' '.join(nodenames)}; do sh $nodename.sh& done; wait; echo 'All nodes are done'"
+
+    def get_pre_rocket_string(self):
+        return ""
+
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, remote_port=None, nohup=True):
+        if reverse_tunnel:
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=accept-new -NfR {port}:localhost:{port} {self.ssh_manager.remote_proxy}"
+            )
+        else:
+            remote_port = remote_port or port
+            cmd = (
+                f"ssh -o StrictHostKeyChecking=accept-new -NfL *:{port}:localhost:{remote_port} {self.ssh_manager.remote_proxy}"
+            )
+        print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
     def get_sleep_time(self):
@@ -135,7 +169,7 @@ class TestConfig(BaseSiteConfig):
     def get_pre_rocket_string(self):
         return f"ssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}"
 
-    def setup_local_ssh_cmd(self, port, reverse_tunnel, nohup=True):
+    def setup_local_ssh_cmd(self, port, reverse_tunnel, remote_port=None, nohup=True):
         if reverse_tunnel:
             cmd = (
                 f"ssh -o StrictHostKeyChecking=no "
@@ -158,11 +192,16 @@ class TestConfig(BaseSiteConfig):
 SITE_CONFIGS = {
     "perlmutter": PerlmutterConfig,
     "ornl": OrnlConfig,
+    "fabric": FABRICConfig,
     "test": TestConfig,
 }
 
-def get_site_config(config_class):
-    config_class = SITE_CONFIGS.get(config_class)
+def get_site_config(site_or_config_class):
+    config_class = SITE_CONFIGS.get(site_or_config_class)
     if config_class is None:
-        raise ValueError(f"Unsupported configuration class: {config_class}")
+        print("Available site configurations:")
+        for site, config in SITE_CONFIGS.items():
+            print(f"- {site}: {config.__name__}")
+        print("\n")
+        raise ValueError(f"Unsupported configuration class: {site_or_config_class}")
     return config_class()
