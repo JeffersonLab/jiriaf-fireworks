@@ -61,7 +61,7 @@ class MainJrmManager:
             raise ValueError("Invalid connect type specified.")
         
         # Save the port-nodename table after any connection
-        self.ssh.ssh_instance.port_nodename_table.save_table()
+        self.ssh.port_nodename_table.save_table()
 
     def print_site_config(self):
         print("Site Configuration:")
