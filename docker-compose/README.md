@@ -107,9 +107,17 @@ docker-compose logs jrm-fw-lpad
 To update the SSH key without restarting the container:
 
 ```bash
-# Copy the new SSH key to the container
-docker cp ~/.ssh/nersc jrm-fw-lpad:/root/.ssh/nersc
+# Option 1: Update the key path in .env and restart services
+vim .env  # Update SSH_KEY path
+./update-ssh-key.sh
+
+# Option 2: Create a temporary copy and restart services
+cp ~/.ssh/nersc /tmp/nersc_key
+sed -i 's|SSH_KEY=.*|SSH_KEY=/tmp/nersc_key|g' .env
+./update-ssh-key.sh
 ```
+
+Note: Since the SSH key is mounted as a volume, it cannot be updated while the container is running. You must restart the services to apply changes to the SSH key.
 
 ## Configuration
 
