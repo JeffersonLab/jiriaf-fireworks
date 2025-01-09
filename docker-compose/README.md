@@ -104,6 +104,13 @@ docker-compose logs mongodb
 docker-compose logs jrm-fw-lpad
 ```
 
+To update the SSH key without restarting the container:
+
+```bash
+# Copy the new SSH key to the container
+docker cp ~/.ssh/nersc jrm-fw-lpad:/root/.ssh/nersc
+```
+
 ## Configuration
 
 - MongoDB data is persisted in a named volume
