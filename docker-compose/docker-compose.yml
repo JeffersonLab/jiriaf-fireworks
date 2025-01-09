@@ -34,7 +34,6 @@ services:
     environment:
       - MONGODB_HOST=localhost
       - MONGODB_PORT=27017
-      - SITE_CONFIG_FILE=perlmutter.yaml
     entrypoint: ["/bin/bash", "-c"]
     command: >
       "mkdir -p /root/.ssh &&
@@ -43,8 +42,6 @@ services:
        chmod 600 /root/.ssh/* &&
        cd /fw/create-ssh-connections &&
        ./jrm-create-ssh-connections &
-       yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
-       ./main.sh add_wf /fw/site_configs/${SITE_CONFIG_FILE} &&
        tail -f /dev/null"
 
 volumes:
