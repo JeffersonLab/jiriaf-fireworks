@@ -29,7 +29,7 @@ services:
       - ${SITE_CONFIG:-./site_configs/perlmutter.yaml}:/fw/site_config.yaml
       - ${LOGS_DIR:-./logs}:/fw/logs
       - ./port-table.yaml:/fw/port_table.yaml:rw
-      - ${SSH_KEY:-~/.ssh/nersc}:/root/.ssh/nersc
+      - ${SSH_DIR:-~/.ssh}:/root/.ssh:rw
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
     environment:
       - MONGODB_HOST=localhost

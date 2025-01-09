@@ -107,6 +107,11 @@ docker-compose logs jrm-fw-lpad
 To update the SSH key without restarting the container:
 
 ```bash
+# Option 1: Using mounted SSH directory (recommended)
+# Simply update your SSH key in ~/.ssh/
+# The container has access to the entire ~/.ssh directory
+
+# Option 2: If you need to restart services
 # Option 1: Update the key path in .env and restart services
 vim .env  # Update SSH_KEY path
 ./update-ssh-key.sh
@@ -117,7 +122,16 @@ sed -i 's|SSH_KEY=.*|SSH_KEY=/tmp/nersc_key|g' .env
 ./update-ssh-key.sh
 ```
 
-Note: Since the SSH key is mounted as a volume, it cannot be updated while the container is running. You must restart the services to apply changes to the SSH key.
+Note: When using the mounted SSH directory approach (Option 1), you can update
+your SSH keys without restarting the container. The keys are shared between
+your host system and the container.
+
+If you need to restart the services (Option 2), the update-ssh-key.sh script will:
+1. Stop and remove all running containers (`docker compose down`)
+2. Kill the SSH connections binary running on the host
+3. Start everything again with the new SSH key configuration
+
+Choose Option 1 if you want to update keys without service interruption.
 
 ## Configuration
 
