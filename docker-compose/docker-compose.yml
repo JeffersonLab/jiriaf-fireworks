@@ -28,7 +28,7 @@ services:
     volumes:
       - ${SITE_CONFIG:-./site_configs/perlmutter.yaml}:/fw/site_config.yaml
       - ${LOGS_DIR:-./logs}:/fw/logs
-      - ${PORT_TABLE:-./port_table.yaml}:/fw/port_table.yaml
+      - ./port-table.yaml:/fw/port_table.yaml:rw
       - ${SSH_KEY:-~/.ssh/nersc}:/root/.ssh/nersc
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
     environment:
