@@ -6,17 +6,27 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 - Docker
 - Docker Compose
+- Go (for building SSH connections binary)
 - Valid site configuration file
 - SSH key for remote access
 
 ## Setup
 
-1. Configure your site:
+1. Start the SSH connections service:
+   ```bash
+   # Make the script executable
+   chmod +x start-ssh-connections.sh
+   
+   # Start the SSH connections service
+   ./start-ssh-connections.sh
+   ```
+
+2. Configure your site:
    - Use the default configuration in `site_configs/perlmutter.yaml` as a template
    - Create your own site configuration file in the `site_configs` directory
    - Update the `SITE_CONFIG` path in `.env` to point to your configuration file
 
-2. Create required directories and files:
+3. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
    - Ensure port-table.yaml exists as an empty file (not a directory)
    - Update the SSH key path in `.env` if needed
@@ -100,6 +110,21 @@ docker-compose logs jrm-fw-lpad
 - JRM Launcher configuration is mounted from your local files
 - Environment variables can be configured in the `.env` file
 - Port table is automatically managed during runtime
+- SSH connections are managed by the jrm-create-ssh-connections binary
+
+## Services
+
+The setup includes two main services:
+
+1. MongoDB (`mongodb`)
+   - Stores workflow and task information
+   - Persists data between restarts
+
+2. JRM Launcher (`jrm-fw-lpad`)
+   - Main workflow manager
+   - Depends on MongoDB service
+   - Connects to SSH service running on host
+   - Uses host networking for remote connections
 
 ## Volumes
 
