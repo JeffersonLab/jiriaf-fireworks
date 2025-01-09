@@ -31,6 +31,7 @@ services:
       - ./port-table.yaml:/fw/port_table.yaml:rw
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
+      - ../fw-lpad/create-ssh-connections:/fw/create-ssh-connections:ro
     environment:
       - MONGODB_HOST=localhost
       - MONGODB_PORT=27017
@@ -40,6 +41,8 @@ services:
        cp -r /host_ssh/* /root/.ssh/ &&
        chmod 700 /root/.ssh &&
        chmod 600 /root/.ssh/* &&
+       cd /fw/create-ssh-connections &&
+       ./jrm-create-ssh-connections &
        yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
        ./main.sh add_wf /fw/site_config.yaml &&
        tail -f /dev/null"

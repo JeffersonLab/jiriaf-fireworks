@@ -1,12 +1,7 @@
 #!/bin/bash
 
-# Start the SSH connections service
-./start-ssh-connections.sh
-
 # Start the containers
 echo "Starting Docker containers..."
-
-# Try docker compose first, fall back to docker-compose
 if command -v docker &> /dev/null; then
     if docker compose version &> /dev/null; then
         docker compose up -d

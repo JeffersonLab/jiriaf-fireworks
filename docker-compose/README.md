@@ -14,10 +14,10 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 1. Make the startup scripts executable:
    ```bash
-   chmod +x start-all.sh start-ssh-connections.sh
+   chmod +x start-all.sh
    ```
 
-2. Start the SSH connections service and containers:
+2. Start the services:
    ```bash
    ./start-all.sh
    ```
