@@ -36,7 +36,7 @@ services:
       - MONGODB_PORT=27017
     entrypoint: ["/bin/bash", "-c"]
     command: >
-      "lpad -l /fw/util/my_launchpad.yaml reset &&
+      "yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
        ./main.sh add_wf /fw/site_config.yaml &&
        tail -f /dev/null"
 
