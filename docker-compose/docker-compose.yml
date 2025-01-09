@@ -29,14 +29,18 @@ services:
       - ${SITE_CONFIG:-./site_configs/perlmutter.yaml}:/fw/site_config.yaml
       - ${LOGS_DIR:-./logs}:/fw/logs
       - ./port-table.yaml:/fw/port_table.yaml:rw
-      - ${SSH_DIR:-~/.ssh}:/root/.ssh:rw
+      - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
     environment:
       - MONGODB_HOST=localhost
       - MONGODB_PORT=27017
     entrypoint: ["/bin/bash", "-c"]
     command: >
-      "yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
+      "mkdir -p /root/.ssh &&
+       cp -r /host_ssh/* /root/.ssh/ &&
+       chmod 700 /root/.ssh &&
+       chmod 600 /root/.ssh/* &&
+       yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
        ./main.sh add_wf /fw/site_config.yaml &&
        tail -f /dev/null"
 

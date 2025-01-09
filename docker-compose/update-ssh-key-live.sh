@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Ensure proper permissions on the SSH key
-chmod 600 ~/.ssh/nersc
-
-# Update the symlink in the container
+# Update SSH files in container
 docker exec jrm-fw-lpad bash -c '
-  cd /root/.ssh &&
-  if [ -L nersc ]; then
-    rm nersc
-  fi &&
-  ln -s nersc_new nersc &&
-  chmod 600 nersc
+  # Copy updated files from host
+  cp -r /host_ssh/* /root/.ssh/
+  
+  # Set proper permissions
+  chmod 700 /root/.ssh
+  chmod 600 /root/.ssh/*
 '
 
 echo "SSH key updated successfully" 
