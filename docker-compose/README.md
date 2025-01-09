@@ -18,7 +18,7 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 2. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
-   - Ensure you have a valid port_table.yaml file
+   - Ensure port-table.yaml exists (it should be empty - will be populated during runtime)
    - Update the SSH key path in `.env` if needed
 
 ## Site Configuration
@@ -59,6 +59,14 @@ ssh:
   build_script:
 ```
 
+## Port Table
+
+The `port-table.yaml` file is used to track port allocations and mappings during runtime. This file:
+- Should be empty when you start the container
+- Will be automatically populated by JRM Launcher during operation
+- Should not be modified manually
+- Is mounted into the container to persist port mappings between restarts
+
 ## Usage
 
 To start the services:
@@ -90,6 +98,7 @@ docker-compose logs jrm-fw-lpad
 - The MongoDB initialization script creates the required user and database
 - JRM Launcher configuration is mounted from your local files
 - Environment variables can be configured in the `.env` file
+- Port table is automatically managed during runtime
 
 ## Volumes
 
