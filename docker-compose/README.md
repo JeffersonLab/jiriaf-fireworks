@@ -39,7 +39,14 @@ template for NERSC's Perlmutter system. To use a different site:
 
 1. Create a new YAML file in the `site_configs` directory
 2. Update the configuration for your site
-3. Update the `SITE_CONFIG_FILE` variable in `.env` to specify which configuration to use
+
+Note: The site_configs directory is mounted as read-only in the container. To add new
+configuration files, add them to the site_configs directory on the host:
+```bash
+# Add a new site configuration
+./add-site-config.sh /path/to/your/config.yaml
+```
+Do not use `docker cp` as the directory is mounted read-only.
 
 Example site configuration structure:
 ```yaml

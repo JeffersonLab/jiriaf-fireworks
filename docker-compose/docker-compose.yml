@@ -26,7 +26,7 @@ services:
       mongodb:
         condition: service_healthy
     volumes:
-      - ${SITE_CONFIG_DIR:-./site_configs}:/fw/site_configs:ro
+      - ${SITE_CONFIG_DIR:-./site_configs}:/fw/site_configs:rw
       - ${LOGS_DIR:-./logs}:/fw/logs
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
