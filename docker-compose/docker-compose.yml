@@ -28,7 +28,6 @@ services:
     volumes:
       - ${SITE_CONFIG:-./site_configs/perlmutter.yaml}:/fw/site_config.yaml
       - ${LOGS_DIR:-./logs}:/fw/logs
-      - ./port-table.yaml:/fw/port_table.yaml:rw
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
       - ../fw-lpad/create-ssh-connections:/fw/create-ssh-connections:ro

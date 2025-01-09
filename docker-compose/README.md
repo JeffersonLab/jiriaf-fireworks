@@ -29,7 +29,6 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 4. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
-   - Ensure port-table.yaml exists as an empty file (not a directory)
    - Update the SSH key path in `.env` if needed
 
 ## Site Configuration
@@ -69,15 +68,6 @@ ssh:
   password:
   build_script:
 ```
-
-## Port Table
-
-The `port-table.yaml` file is used to track port allocations and mappings during runtime. This file:
-- Should be empty when you start the container
-- Will be automatically populated by JRM Launcher during operation
-- Should not be modified manually
-- Is mounted into the container to persist port mappings between restarts
-- Must exist as a file (not a directory) with write permissions
 
 ## Usage
 
