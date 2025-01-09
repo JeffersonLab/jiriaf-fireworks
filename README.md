@@ -342,3 +342,25 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 JRM Launcher is designed to be easily extensible to support various computing environments. For information on how to add support for new environments, refer to the "Customization" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 
 By leveraging JRM Launcher, you can simplify the management of complex network connections in distributed computing environments, allowing you to focus on your workflows rather than infrastructure management.
+
+### Quick Start with Docker Compose
+
+For a simplified setup using Docker Compose:
+
+1. Navigate to the docker-compose directory:
+   ```bash
+   cd docker-compose
+   ```
+
+2. Configure your environment:
+   - Copy your site configuration file to the directory or update `SITE_CONFIG` in `.env`
+   - Create a logs directory or update `LOGS_DIR` in `.env`
+   - Ensure you have a valid port_table.yaml file
+   - Update the SSH key path in `.env` if needed
+
+3. Start the services:
+   ```bash
+   docker-compose up -d
+   ```
+
+For more detailed instructions on using Docker Compose, see the [docker-compose/README.md](docker-compose/README.md).
