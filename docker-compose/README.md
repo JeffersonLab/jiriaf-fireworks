@@ -11,10 +11,53 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 ## Setup
 
-1. Copy your site configuration file to this directory or update the `SITE_CONFIG` path in `.env`
-2. Create a logs directory or update the `LOGS_DIR` path in `.env`
-3. Ensure you have a valid port_table.yaml file
-4. Update the SSH key path in `.env` if needed
+1. Configure your site:
+   - Use the default configuration in `site_configs/perlmutter.yaml` as a template
+   - Create your own site configuration file in the `site_configs` directory
+   - Update the `SITE_CONFIG` path in `.env` to point to your configuration file
+
+2. Create required directories and files:
+   - Create a logs directory or update the `LOGS_DIR` path in `.env`
+   - Ensure you have a valid port_table.yaml file
+   - Update the SSH key path in `.env` if needed
+
+## Site Configuration
+
+The `site_configs` directory contains YAML files for different computing sites. The default `perlmutter.yaml` provides a template for NERSC's Perlmutter system. To use a different site:
+
+1. Create a new YAML file in the `site_configs` directory
+2. Update the configuration for your site
+3. Update the `SITE_CONFIG` variable in `.env` to point to your new configuration file
+
+Example site configuration structure:
+```yaml
+slurm:
+  nodes: 1
+  constraint: cpu
+  walltime: 00:30:00
+  qos: debug
+  account: your_account
+  reservation:
+
+jrm:
+  nodename: jrm-sitename
+  site: sitename
+  control_plane_ip: your_control_plane
+  apiserver_port: your_port
+  kubeconfig: path/to/kubeconfig
+  image: docker:your/image:tag
+  vkubelet_pod_ips:
+    - your_pod_ip
+  custom_metrics_ports: [port1, port2, port3, port4]
+  config_class:
+
+ssh:
+  remote_proxy: user@proxy.site.domain
+  remote: user@internal.site.ip
+  ssh_key: /root/.ssh/your_key
+  password:
+  build_script:
+```
 
 ## Usage
 
