@@ -26,7 +26,7 @@ services:
       mongodb:
         condition: service_healthy
     volumes:
-      - ${SITE_CONFIG:-./site_configs/perlmutter.yaml}:/fw/site_config.yaml
+      - ${SITE_CONFIG_DIR:-./site_configs}:/fw/site_configs:ro
       - ${LOGS_DIR:-./logs}:/fw/logs
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
@@ -43,7 +43,7 @@ services:
        cd /fw/create-ssh-connections &&
        ./jrm-create-ssh-connections &
        yes Y | lpad -l /fw/util/my_launchpad.yaml reset &&
-       ./main.sh add_wf /fw/site_config.yaml &&
+       ./main.sh add_wf /fw/site_configs/${SITE_CONFIG_FILE:-perlmutter.yaml} &&
        tail -f /dev/null"
 
 volumes:

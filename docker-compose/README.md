@@ -25,7 +25,7 @@ This directory contains the Docker Compose configuration for running JRM Launche
 3. Configure your site:
    - Use the default configuration in `site_configs/perlmutter.yaml` as a template
    - Create your own site configuration file in the `site_configs` directory
-   - Update the `SITE_CONFIG` path in `.env` to point to your configuration file
+   - Update the `SITE_CONFIG_FILE` in `.env` to specify which configuration to use
 
 4. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
@@ -33,11 +33,13 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 ## Site Configuration
 
-The `site_configs` directory contains YAML files for different computing sites. The default `perlmutter.yaml` provides a template for NERSC's Perlmutter system. To use a different site:
+The `site_configs` directory contains YAML files for different computing sites. All configuration files
+are copied into the container at `/fw/site_configs/`. The default `perlmutter.yaml` provides a 
+template for NERSC's Perlmutter system. To use a different site:
 
 1. Create a new YAML file in the `site_configs` directory
 2. Update the configuration for your site
-3. Update the `SITE_CONFIG` variable in `.env` to point to your new configuration file
+3. Update the `SITE_CONFIG_FILE` variable in `.env` to specify which configuration to use
 
 Example site configuration structure:
 ```yaml

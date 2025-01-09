@@ -1,0 +1,26 @@
+slurm:
+  nodes: 1
+  constraint: ejfat
+  walltime: 00:30:00
+  qos: normal
+  account: csc266
+  reservation:
+
+jrm:
+  nodename: jrm-ornl
+  site: ornl
+  control_plane_ip: jiriaf2302
+  apiserver_port: 38687
+  kubeconfig: /ccsopen/home/jlabtsai/run-vk/kubeconfig/jiriaf2302
+  image: docker:jlabtsai/vk-cmd:main
+  vkubelet_pod_ips:
+    - 172.17.0.1
+  custom_metrics_ports: [2221, 1776, 8088, 2222]
+  config_class:
+  
+ssh:
+  remote_proxy:
+  remote: < this is the IP address of the remote machine where the fw-agent is running >
+  ssh_key:
+  password: < this is a password encoded in base64 >
+  build_script: ./build-ssh-ornl.sh
