@@ -12,21 +12,22 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 ## Setup
 
-1. Start the SSH connections service:
+1. Make the startup scripts executable:
    ```bash
-   # Make the script executable
-   chmod +x start-ssh-connections.sh
-   
-   # Start the SSH connections service
-   ./start-ssh-connections.sh
+   chmod +x start-all.sh start-ssh-connections.sh
    ```
 
-2. Configure your site:
+2. Start the SSH connections service and containers:
+   ```bash
+   ./start-all.sh
+   ```
+
+3. Configure your site:
    - Use the default configuration in `site_configs/perlmutter.yaml` as a template
    - Create your own site configuration file in the `site_configs` directory
    - Update the `SITE_CONFIG` path in `.env` to point to your configuration file
 
-3. Create required directories and files:
+4. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
    - Ensure port-table.yaml exists as an empty file (not a directory)
    - Update the SSH key path in `.env` if needed
