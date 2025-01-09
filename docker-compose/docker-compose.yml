@@ -26,7 +26,6 @@ services:
       mongodb:
         condition: service_healthy
     volumes:
-      - ${SITE_CONFIG_DIR:-./site_configs}:/fw/site_configs:rw
       - ${LOGS_DIR:-./logs}:/fw/logs
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
@@ -37,12 +36,13 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command: >
       "mkdir -p /root/.ssh &&
-       cp -r /host_ssh/* /root/.ssh/ &&
-       chmod 700 /root/.ssh &&
-       chmod 600 /root/.ssh/* &&
-       cd /fw/create-ssh-connections &&
-       ./jrm-create-ssh-connections &
-       tail -f /dev/null"
+      mkdir -p /fw/site_configs &&
+      cp -r /host_ssh/* /root/.ssh/ &&
+      chmod 700 /root/.ssh &&
+      chmod 600 /root/.ssh/* &&
+      cd /fw/create-ssh-connections &&
+      ./jrm-create-ssh-connections &
+      tail -f /dev/null"
 
 volumes:
   mongodb_data:
