@@ -2,7 +2,6 @@
 
 # Build and start the SSH connections binary
 cd ../fw-lpad/create-ssh-connections
-go build -o jrm-create-ssh-connections .
 ./jrm-create-ssh-connections &
 
 # Wait for the service to be ready
