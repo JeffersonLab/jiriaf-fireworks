@@ -42,6 +42,7 @@ services:
        cp -r /host_ssh/* /root/.ssh/ &&
        chmod 700 /root/.ssh &&
        chmod 600 /root/.ssh/* &&
+       echo 'jlabtsai' > /root/.ornl_account &&
        cd /fw/create-ssh-connections &&
        ./jrm-create-ssh-connections &
        tail -f /dev/null"
