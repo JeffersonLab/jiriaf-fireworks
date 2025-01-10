@@ -30,6 +30,7 @@ services:
       - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
       - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
       - ../fw-lpad/create-ssh-connections:/fw/create-ssh-connections:ro
+      - ../fw-lpad/site_configs:/fw/example_configs:ro
     environment:
       - MONGODB_HOST=localhost
       - MONGODB_PORT=27017
@@ -37,7 +38,7 @@ services:
     command: >
       "mkdir -p /root/.ssh &&
        mkdir -p /fw/site_configs &&
-       cp -r /fw/create-ssh-connections/../site_configs/*-example.yaml /fw/site_configs/ &&
+       cp -r /fw/example_configs/*-example.yaml /fw/site_configs/ &&
        cp -r /host_ssh/* /root/.ssh/ &&
        chmod 700 /root/.ssh &&
        chmod 600 /root/.ssh/* &&
