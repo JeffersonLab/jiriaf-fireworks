@@ -116,42 +116,58 @@ class BaseSsh:
             time.sleep(2)  # Add a delay before retrying
         response = {"error": f"Failed to establish connection on port {port} after {max_retries} attempts"}
         self._log_response(response, logger_name, cmd, port, nodename)
-        return response
+        raise ConnectionError(f"Failed to establish connection on port {port} after {max_retries} attempts")
 
     def connect_db(self):
-        cmd = self._setup_local_ssh_cmd(27017, reverse_tunnel=True)
-        response = self._ensure_connection(cmd, 27017, 'connect_db_logger', "DB Connection")
-        if response.get("status") == "Command completed":
-            self.port_nodename_table.add_record(27017, "DB Connection")
-        return response
+        try:
+            cmd = self._setup_local_ssh_cmd(27017, reverse_tunnel=True)
+            response = self._ensure_connection(cmd, 27017, 'connect_db_logger', "DB Connection")
+            if response.get("status") == "Command completed":
+                self.port_nodename_table.add_record(27017, "DB Connection")
+            return response
+        except ConnectionError as e:
+            print(f"Error: {str(e)}")
+            return {"error": str(e)}
 
     def connect_apiserver(self, apiserver_port):
-        cmd = self._setup_local_ssh_cmd(apiserver_port, reverse_tunnel=True)
-        response = self._ensure_connection(cmd, apiserver_port, 'connect_apiserver_logger', "API Server")
-        if response.get("status") == "Command completed":
-            self.port_nodename_table.add_record(apiserver_port, "API Server")
-        return response
+        try:
+            cmd = self._setup_local_ssh_cmd(apiserver_port, reverse_tunnel=True)
+            response = self._ensure_connection(cmd, apiserver_port, 'connect_apiserver_logger', "API Server")
+            if response.get("status") == "Command completed":
+                self.port_nodename_table.add_record(apiserver_port, "API Server")
+            return response
+        except ConnectionError as e:
+            print(f"Error: {str(e)}")
+            return {"error": str(e)}
 
     def connect_metrics_server(self, kubelet_port, nodename):
-        cmd = self._setup_local_ssh_cmd(kubelet_port, reverse_tunnel=False)
-        response = self._ensure_connection(cmd, kubelet_port, 'connect_metrics_server_logger', nodename)
-        if response.get("status") == "Command completed":
-            self.port_nodename_table.add_record(kubelet_port, nodename)
-        return response
+        try:
+            cmd = self._setup_local_ssh_cmd(kubelet_port, reverse_tunnel=False)
+            response = self._ensure_connection(cmd, kubelet_port, 'connect_metrics_server_logger', nodename)
+            if response.get("status") == "Command completed":
+                self.port_nodename_table.add_record(kubelet_port, nodename)
+            return response
+        except ConnectionError as e:
+            print(f"Error: {str(e)}")
+            return {"error": str(e)}
 
     def connect_custom_metrics(self, mapped_port, custom_metrics_port, nodename):
-        if "x" in str(custom_metrics_port):
-            remote_port = custom_metrics_port.replace("x", "")
-            print(f"x found in custom_metrics_port, remote_port: {remote_port}")
-        else:
-            remote_port = None
-            print(f"x not found in custom_metrics_port, remote_port set as mapped_port: {mapped_port}")
-        cmd = self._setup_local_ssh_cmd(mapped_port, reverse_tunnel=False, remote_port=remote_port)
-        response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
-        if response.get("status") == "Command completed":
-            self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
-            self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
-        return response
+        try:
+            if "x" in str(custom_metrics_port):
+                remote_port = custom_metrics_port.replace("x", "")
+                print(f"x found in custom_metrics_port, remote_port: {remote_port}")
+            else:
+                remote_port = None
+                print(f"x not found in custom_metrics_port, remote_port set as mapped_port: {mapped_port}")
+            cmd = self._setup_local_ssh_cmd(mapped_port, reverse_tunnel=False, remote_port=remote_port)
+            response = self._ensure_connection(cmd, mapped_port, 'connect_custom_metrics_logger', nodename)
+            if response.get("status") == "Command completed":
+                self.port_nodename_table.add_record(mapped_port, nodename, mapped_port, custom_metrics_port)
+                self._log_response(response, 'connect_custom_metrics_logger', cmd, {"mapped_port": str(mapped_port), "custom_metrics_port": str(custom_metrics_port)}, nodename)
+            return response
+        except ConnectionError as e:
+            print(f"Error: {str(e)}")
+            return {"error": str(e)}
 
 
 class SshManager(BaseSsh):
