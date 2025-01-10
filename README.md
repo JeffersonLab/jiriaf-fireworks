@@ -367,7 +367,25 @@ For a simplified setup using Docker Compose:
    ./add-site-config.sh /path/to/your/config.yaml
    ```
 
+5. For ORNL users, update your account name (optional):
+   ```bash
+   ./update-ornl-account.sh your_account_name
+   ```
+
 The container comes with example configurations for different sites (perlmutter-example.yaml,
 ornl-example.yaml) that you can use as templates for your own configuration.
+
+To update SSH keys without restarting the container:
+```bash
+./update-ssh-key-live.sh
+```
+
+The Docker Compose setup automatically:
+- Creates and configures MongoDB with the required database and user
+- Mounts necessary volumes for logs and SSH keys
+- Sets up proper networking
+- Manages the SSH connections service
+- Provides example site configurations
+- Initializes default ORNL account settings (jlabtsai)
 
 For more detailed instructions on using Docker Compose, see the [docker-compose/README.md](docker-compose/README.md).

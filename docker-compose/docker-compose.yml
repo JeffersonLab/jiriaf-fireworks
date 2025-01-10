@@ -19,7 +19,7 @@ services:
       start_period: 5s
 
   jrm-fw-lpad:
-    image: jlabtsai/jrm-fw-lpad:docker-compose
+    image: jlabtsai/jrm-fw-lpad:main
     container_name: jrm-fw-lpad
     network_mode: host
     depends_on:
