@@ -23,4 +23,4 @@ ssh:
   remote: < this is the IP address of the remote machine where the fw-agent is running >
   ssh_key:
   password: < this is a password encoded in base64 >
-  build_script: ./build-ssh-ornl.sh
+  build_script: /root/build-ssh-ornl.sh # Notice that the account needs to be set up in advance.

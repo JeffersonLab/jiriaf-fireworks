@@ -82,6 +82,13 @@ To update the SSH key without restarting the container:
 ./update-ssh-key-live.sh
 ```
 
+To update the ORNL account name:
+
+```bash
+# Update the account name in build-ssh-ornl.sh
+./update-ornl-account.sh your_account_name
+```
+
 Note: The host's SSH directory is mounted as read-only at /host_ssh in the container
 and copied to the container's /root/.ssh with appropriate permissions. You can
 update SSH keys anytime by modifying files in your ~/.ssh directory and running

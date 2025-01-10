@@ -1,0 +1,29 @@
+
+# Before launching JRMs in FABRIC using the following, set up FABRIC slice and add nodes in it first.
+# fabric_config.yaml 
+slurm:
+  nodes: 1 # only support launching 1 node at a time for FABRIC.
+  constraint:
+  walltime:
+  qos: 
+  account:
+  reservation:
+
+jrm:
+  nodename: jrm-fabric
+  site: fabric-0 # This must be set up in consistent with `category` in `my_fworker.yaml`.
+  control_plane_ip: jiriaf2302
+  apiserver_port: 38687
+  kubeconfig: /home/ubuntu/fw_config/kubeconfig
+  image: jlabtsai/vk-cmd:main
+  vkubelet_pod_ips:
+    - 172.17.0.1
+  custom_metrics_ports: [x2221, x1776, x8088, x2222] #x means that the remote IP is 2221, 1776, 8088, or 2222.
+  config_class: fabric
+
+ssh:
+  remote_proxy: ubuntu@< IP >
+  remote:
+  ssh_key:
+  password:
+  build_script:
