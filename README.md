@@ -352,15 +352,22 @@ For a simplified setup using Docker Compose:
    cd docker-compose
    ```
 
-2. Configure your environment:
-   - Copy your site configuration file to the directory or update `SITE_CONFIG` in `.env`
-   - Create a logs directory or update `LOGS_DIR` in `.env`
-   - Ensure you have a valid port_table.yaml file
-   - Update the SSH key path in `.env` if needed
+2. Make the startup script executable:
+   ```bash
+   chmod +x start-all.sh
+   ```
 
 3. Start the services:
    ```bash
-   docker-compose up -d
+   ./start-all.sh
    ```
+
+4. Add your site configuration:
+   ```bash
+   ./add-site-config.sh /path/to/your/config.yaml
+   ```
+
+The container comes with example configurations for different sites (perlmutter-example.yaml,
+ornl-example.yaml) that you can use as templates for your own configuration.
 
 For more detailed instructions on using Docker Compose, see the [docker-compose/README.md](docker-compose/README.md).

@@ -6,7 +6,6 @@ This directory contains the Docker Compose configuration for running JRM Launche
 
 - Docker
 - Docker Compose
-- Go (for building SSH connections binary)
 - Valid site configuration file
 - SSH key for remote access
 
@@ -22,10 +21,10 @@ This directory contains the Docker Compose configuration for running JRM Launche
    ./start-all.sh
    ```
 
-3. Configure your site:
-   - Use the default configuration in `site_configs/perlmutter.yaml` as a template
-   - Create your own site configuration file in the `site_configs` directory
-   - Update the `SITE_CONFIG_FILE` in `.env` to specify which configuration to use
+3. Add your site configuration:
+   ```bash
+   ./add-site-config.sh /path/to/your/config.yaml
+   ```
 
 4. Create required directories and files:
    - Create a logs directory or update the `LOGS_DIR` path in `.env`
@@ -44,50 +43,19 @@ To add your own configuration:
 1. Create a new YAML file based on one of the examples
 2. Update the configuration for your site
 
-Note: The site_configs directory is mounted as read-only in the container. To add new
-configuration files, add them to the site_configs directory on the host:
+Note: To add new configuration files to the container:
 ```bash
 # Add a new site configuration
 ./add-site-config.sh /path/to/your/config.yaml
 ```
 The configuration will be immediately available in the container.
 
-Example site configuration structure:
-```yaml
-slurm:
-  nodes: 1
-  constraint: cpu
-  walltime: 00:30:00
-  qos: debug
-  account: your_account
-  reservation:
-
-jrm:
-  nodename: jrm-sitename
-  site: sitename
-  control_plane_ip: your_control_plane
-  apiserver_port: your_port
-  kubeconfig: path/to/kubeconfig
-  image: docker:your/image:tag
-  vkubelet_pod_ips:
-    - your_pod_ip
-  custom_metrics_ports: [port1, port2, port3, port4]
-  config_class:
-
-ssh:
-  remote_proxy: user@proxy.site.domain
-  remote: user@internal.site.ip
-  ssh_key: /root/.ssh/your_key
-  password:
-  build_script:
-```
-
 ## Usage
 
 To start the services:
 
 ```bash
-docker-compose up -d
+./start-all.sh
 ```
 
 To stop the services:
@@ -125,7 +93,6 @@ the update-ssh-key-live.sh script.
 - The MongoDB initialization script creates the required user and database
 - JRM Launcher configuration is mounted from your local files
 - Environment variables can be configured in the `.env` file
-- Port table is automatically managed during runtime
 - SSH connections are managed by the jrm-create-ssh-connections binary
 
 ## Services
