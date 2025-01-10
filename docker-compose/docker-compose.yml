@@ -19,7 +19,7 @@ services:
       start_period: 5s
 
   jrm-fw-lpad:
-    image: jlabtsai/jrm-fw-lpad:main
+    image: jlabtsai/jrm-fw-lpad:ssh
     container_name: jrm-fw-lpad
     network_mode: host
     depends_on:
