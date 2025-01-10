@@ -58,6 +58,8 @@ To start the services:
 ./start-all.sh
 ```
 
+The startup script will automatically pull the latest versions of the images before starting the containers.
+
 To stop the services:
 
 ```bash
