@@ -1,5 +1,8 @@
 #!/usr/bin/expect -f
 
+# ORNL account configuration
+ORNL_ACCOUNT=jlabtsai
+
 # Check if port, is_reversed flag, and encoded password were provided
 if {[llength $argv] < 3} {
     puts "Usage: $argv0 <port> <is_reversed> <base64_encoded_password>"
@@ -19,11 +22,11 @@ set timeout -1
 
 # Determine the SSH command arguments based on the is_reversed variable
 if {$is_reversed eq "false"} {
-    set first_hop_cmd "ssh -o StrictHostKeyChecking=no -L *:$port:localhost:$port jlabtsai@flux.op.ccs.ornl.gov"
-    set second_hop_cmd "ssh -o StrictHostKeyChecking=no -L *:$port:localhost:$port jlabtsai@128.219.141.17"
+    set first_hop_cmd "ssh -o StrictHostKeyChecking=no -L *:$port:localhost:$port $ORNL_ACCOUNT@flux.op.ccs.ornl.gov"
+    set second_hop_cmd "ssh -o StrictHostKeyChecking=no -L *:$port:localhost:$port $ORNL_ACCOUNT@128.219.141.17"
 } else {
-    set first_hop_cmd "ssh -o StrictHostKeyChecking=no -R $port:localhost:$port jlabtsai@flux.op.ccs.ornl.gov"
-    set second_hop_cmd "ssh -o StrictHostKeyChecking=no -R $port:localhost:$port jlabtsai@128.219.141.17"
+    set first_hop_cmd "ssh -o StrictHostKeyChecking=no -R $port:localhost:$port $ORNL_ACCOUNT@flux.op.ccs.ornl.gov"
+    set second_hop_cmd "ssh -o StrictHostKeyChecking=no -R $port:localhost:$port $ORNL_ACCOUNT@128.219.141.17"
 }
 
 # First hop to ornl-login with port forwarding
