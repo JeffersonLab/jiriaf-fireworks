@@ -40,11 +40,13 @@ class BaseJrmManager:
         ssh_db = self.ssh.connect_db()
         if "error" in ssh_db:
             print(f"Error in connecting to db. Check the log at {LOG_PATH}connect_db_logger.log")
+            print("Stopping workflow creation due to connection failure.")
             return None
         
         ssh_apiserver = self.ssh.connect_apiserver(self.jrm.apiserver_port)
         if "error" in ssh_apiserver:
             print(f"Error in connecting to apiserver. Check the log at {LOG_PATH}connect_apiserver_logger.log")
+            print("Stopping workflow creation due to connection failure.")
             return None
 
         # Ensure vkubelet_pod_ips length matches the number of nodes
@@ -67,8 +69,12 @@ class BaseJrmManager:
             nodename = f"{self.jrm.nodename}-{unique_id}"
 
             remote_ssh_cmds, kubelet_port = self.task.setup_ssh_connections(nodename, available_kubelet_ports, available_custom_metrics_ports)
+            if not remote_ssh_cmds:  # If setup_ssh_connections failed
+                print(f"Error in setting up SSH connections for node {nodename}")
+                print("Stopping workflow creation due to connection failure.")
+                return None
+
             print(f"Node {nodename} is using ip {self.jrm.vkubelet_pod_ips[node_index]}")
-            # print(f"SSH commands on the batch job script: {remote_ssh_cmds}")
             script = self.task.get_jrm_script(nodename, kubelet_port, remote_ssh_cmds, self.jrm.vkubelet_pod_ips[node_index])
             tasks.append(ScriptTask.from_str(f"cat << 'EOF' > {nodename}.sh\n{script}\nEOF"))
             tasks.append(ScriptTask.from_str(f"chmod +x {nodename}.sh"))
