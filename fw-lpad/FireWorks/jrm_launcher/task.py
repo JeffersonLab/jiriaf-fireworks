@@ -30,8 +30,11 @@ class TaskManager:
             self.site_config.setup_remote_ssh_cmd(kubelet_port, reverse=True)
         ]
 
-        cmd = self.ssh.connect_metrics_server(kubelet_port, nodename)
-        self.ssh_metrics_cmds.append(cmd)
+        metrics_response = self.ssh.connect_metrics_server(kubelet_port, nodename)
+        if "error" in metrics_response:
+            print(f"Error in connecting metrics server for node {nodename}: {metrics_response['error']}")
+            return None, None
+        self.ssh_metrics_cmds.append(metrics_response)
         print(f"Node {nodename} is running on port {kubelet_port}")
 
         # Handle custom metrics ports
@@ -42,7 +45,15 @@ class TaskManager:
                     for port in self.jrm.custom_metrics_ports
                 ]
                 for future in as_completed(futures):
-                    commands.append(future.result())
+                    try:
+                        result = future.result()
+                        if result is None:  # If execute_custom_metric_command returned None due to error
+                            print(f"Error in setting up custom metrics for node {nodename}")
+                            return None, None
+                        commands.append(result)
+                    except Exception as e:
+                        print(f"Error in setting up custom metrics for node {nodename}: {str(e)}")
+                        return None, None
 
         ssh_remote_commands = "echo 'no ssh remote commands'" if all(cmd == "" for cmd in commands) else "; ".join(commands)
         return ssh_remote_commands, kubelet_port
@@ -51,8 +62,11 @@ class TaskManager:
         mapped_port = available_custom_metrics_ports.get()  # Get a port from the queue
         command = self.site_config.setup_remote_ssh_cmd(mapped_port, reverse=True, remote_port=port)
         self.dict_mapped_custom_metrics_ports[mapped_port] = port
-        cmd = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
-        self.ssh_custom_metrics_cmds.append(cmd)
+        response = self.ssh.connect_custom_metrics(mapped_port, port, nodename)
+        if "error" in response:
+            print(f"Error in connecting custom metrics for node {nodename} on port {port}: {response['error']}")
+            return None
+        self.ssh_custom_metrics_cmds.append(response)
         print(f"Node {nodename} is exposing custom metrics port {port} on port {mapped_port}")
         return command
 
