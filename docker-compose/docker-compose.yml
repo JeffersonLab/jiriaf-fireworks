@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - jrm_network
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok'
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  jrm-fw-lpad:
+    image: jlabtsai/jrm-fw-lpad:main
+    container_name: jrm-fw-lpad
+    network_mode: host
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ${LOGS_DIR:-./logs}:/fw/logs
+      - ${SSH_DIR:-~/.ssh}:/host_ssh:ro
+      - ./my_launchpad.yaml:/fw/util/my_launchpad.yaml
+      - ../fw-lpad/create-ssh-connections:/fw/create-ssh-connections:ro
+      - ./site_configs:/fw/example_configs:ro
+    environment:
+      - MONGODB_HOST=localhost
+      - MONGODB_PORT=27017
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "mkdir -p /root/.ssh &&
+       mkdir -p /fw/site_configs &&
+       cp -r /fw/example_configs/*-example.yaml /fw/site_configs/ &&
+       cp -r /host_ssh/* /root/.ssh/ &&
+       chmod 700 /root/.ssh &&
+       chmod 600 /root/.ssh/* &&
+       echo 'jlabtsai' > /root/.ornl_account &&
+       cd /fw/create-ssh-connections &&
+       ./jrm-create-ssh-connections &
+       tail -f /dev/null"
+
+volumes:
+  mongodb_data:
+
+networks:
+  jrm_network:
+    driver: bridge 

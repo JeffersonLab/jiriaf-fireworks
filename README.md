@@ -342,3 +342,50 @@ JRM Launcher acts as a central management tool, orchestrating these connections 
 JRM Launcher is designed to be easily extensible to support various computing environments. For information on how to add support for new environments, refer to the "Customization" section in the [fw-lpad readme](fw-lpad/readme.md) file.
 
 By leveraging JRM Launcher, you can simplify the management of complex network connections in distributed computing environments, allowing you to focus on your workflows rather than infrastructure management.
+
+### Quick Start with Docker Compose
+
+For a simplified setup using Docker Compose:
+
+1. Navigate to the docker-compose directory:
+   ```bash
+   cd docker-compose
+   ```
+
+2. Make the startup script executable:
+   ```bash
+   chmod +x start-all.sh
+   ```
+
+3. Start the services:
+   ```bash
+   ./start-all.sh
+   ```
+
+4. Add your site configuration:
+   ```bash
+   ./add-site-config.sh /path/to/your/config.yaml
+   ```
+
+5. For ORNL users, update your account name (optional):
+   ```bash
+   ./update-ornl-account.sh your_account_name
+   ```
+
+The container comes with example configurations for different sites (perlmutter-example.yaml,
+ornl-example.yaml) that you can use as templates for your own configuration.
+
+To update SSH keys without restarting the container:
+```bash
+./update-ssh-key-live.sh
+```
+
+The Docker Compose setup automatically:
+- Creates and configures MongoDB with the required database and user
+- Mounts necessary volumes for logs and SSH keys
+- Sets up proper networking
+- Manages the SSH connections service
+- Provides example site configurations
+- Initializes default ORNL account settings (jlabtsai)
+
+For more detailed instructions on using Docker Compose, see the [docker-compose/README.md](docker-compose/README.md).
