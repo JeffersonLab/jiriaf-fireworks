@@ -46,7 +46,7 @@ class PerlmutterConfig(BaseSiteConfig):
         return f"shifter --image={self.task_manager.jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{nodename}\""
 
     def get_connection_info(self):
-        return f"ssh_key: {self.ssh_manager.ssh_key}, remote: {self.ssh_manager.remote}, remote_proxy: {self.ssh_manager.remote_proxy}"
+        return f"ssh_key: {self.ssh_manager.ssh_key}, remote: {self.ssh_manager.remote}"
 
     def get_exec_task_cmd(self, nodenames):
         srun_command = f"srun --nodes=1 sh $nodename.sh&"
