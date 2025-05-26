@@ -18,7 +18,7 @@ jrm:
 
 ssh:
   remote_proxy: perlmutter
-  remote: < this is the IP address of the remote machine where the fw-agent is running >
+  remote: < login number of a login node on Perlmutter (e.g., login33) >
   ssh_key: < this is the ssh key to access the remote machine >
   password:
   build_script:
