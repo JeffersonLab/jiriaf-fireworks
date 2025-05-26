@@ -68,7 +68,7 @@ For more detailed instructions on setting up the JRM Launcher, please refer to t
 
    ssh:
      remote_proxy: jlabtsai@perlmutter.nersc.gov
-     remote: jlabtsai@128.55.64.13
+     remote: loginXX # where XX is the number of a login node on Perlmutter (e.g., login33)
      ssh_key: /root/.ssh/nersc
      password:
      build_script:
@@ -389,3 +389,39 @@ The Docker Compose setup automatically:
 - Initializes default ORNL account settings (jlabtsai)
 
 For more detailed instructions on using Docker Compose, see the [docker-compose/README.md](docker-compose/README.md).
+
+## SSH Configuration Required for Perlmutter
+
+Before using this tool with Perlmutter, you **must** set up your SSH config (`~/.ssh/config`) as follows:
+
+```ssh
+Host dtnproxy
+    Hostname dtn.nersc.gov
+    ForwardAgent yes
+    AddKeysToAgent yes
+    ControlMaster auto
+    ControlPath ~/.ssh/%C.dtn.sock
+    IdentityFile ~/.ssh/nersc
+    ServerAliveInterval 600
+    User <your-username>
+    LogLevel QUIET
+
+Host login??
+    StrictHostKeyChecking no
+    IdentityFile ~/.ssh/nersc
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardAgent yes
+    ControlMaster auto
+    ControlPath ~/.ssh/%h.sock
+    ProxyJump dtnproxy
+    Hostname %h.chn.perlmutter.nersc.gov
+    User <your-username>
+    LogLevel QUIET
+```
+
+Replace `<your-username>` with your NERSC username.
+
+**Notice:** In your site configuration file, the `remote` field under `ssh` **must** be set to something like `loginXX`, where `XX` is the number of a login node on Perlmutter (e.g., `login33`). This matches the hostnames defined in your SSH config and is required for the connection to work properly.
+
+**Note:** The code assumes you have this SSH config in place. If not, SSH connections to Perlmutter will fail.
