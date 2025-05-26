@@ -1,0 +1,23 @@
+Host dtnproxy
+    Hostname dtn.nersc.gov
+    ForwardAgent yes
+    AddKeysToAgent yes
+    ControlMaster auto
+    ControlPath ~/.ssh/%C.dtn.sock
+    IdentityFile ~/.ssh/nersc
+    ServerAliveInterval 600
+    User <your-username>
+    LogLevel QUIET
+
+Host login??
+    StrictHostKeyChecking no
+    IdentityFile ~/.ssh/nersc
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardAgent yes
+    ControlMaster auto
+    ControlPath ~/.ssh/%h.sock
+    ProxyJump dtnproxy
+    Hostname %h.chn.perlmutter.nersc.gov
+    User <your-username>
+    LogLevel QUIET
