@@ -68,7 +68,7 @@ For more detailed instructions on setting up the JRM Launcher, please refer to t
 
    ssh:
      remote_proxy: jlabtsai@perlmutter.nersc.gov
-     remote: jlabtsai@128.55.64.13
+     remote: loginXX # where XX is the number of a login node on Perlmutter (e.g., login33)
      ssh_key: /root/.ssh/nersc
      password:
      build_script:

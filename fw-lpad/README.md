@@ -9,6 +9,23 @@ JRM Launcher is a tool for managing and launching JRM (Job Resource Manager) ins
 - Valid kubeconfig file for the Kubernetes cluster
 - Python 3.9 (for developers)
   - Required Python packages (install via `pip install -r requirements.txt`)
+- **NERSC SSH Key Setup:**
+  - Copy the provided script to your `~/.ssh` directory:
+    ```bash
+    cp fw-lpad/aux/sshproxy.sh ~/.ssh/
+    cd ~/.ssh
+    chmod +x sshproxy.sh
+    ./sshproxy.sh -u <your-username>
+    ```
+    This will generate your NERSC SSH key (`~/.ssh/nersc`). Follow the prompts to authenticate and generate your key.
+- **NERSC SSH Config Setup:**
+  - Set up your SSH config for NERSC by copying the example config:
+    ```bash
+    cp fw-lpad/aux/ssh_config ~/.ssh/config
+    ```
+    Edit `<your-username>` in the config to your NERSC username.
+
+  This SSH config allows you to use hostnames like `login33` for Perlmutter login nodes, and will automatically connect through the DTN proxy.
 
 ## Adding a Workflow
 
@@ -44,8 +61,8 @@ Follow these steps to add a new workflow:
        config_class:
 
      ssh:
-       remote_proxy: user@perlmutter.nersc.gov
-       remote: user@128.55.64.13 #this is one of the login nodes in perlmutter
+       remote_proxy: perlmutter # keep it but this is not used
+       remote: loginXX # where XX is the number of a login node on Perlmutter (e.g., login33)
        ssh_key: /root/.ssh/mykey 
        password:
        build_script:

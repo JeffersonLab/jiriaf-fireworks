@@ -46,7 +46,7 @@ class PerlmutterConfig(BaseSiteConfig):
         return f"shifter --image={self.task_manager.jrm.image} -- /bin/bash -c \"cp -r /vk-cmd `pwd`/{nodename}\""
 
     def get_connection_info(self):
-        return f"ssh_key: {self.ssh_manager.ssh_key}, remote: {self.ssh_manager.remote}, remote_proxy: {self.ssh_manager.remote_proxy}"
+        return f"ssh_key: {self.ssh_manager.ssh_key}, remote: {self.ssh_manager.remote}"
 
     def get_exec_task_cmd(self, nodenames):
         srun_command = f"srun --nodes=1 sh $nodename.sh&"
@@ -56,20 +56,11 @@ class PerlmutterConfig(BaseSiteConfig):
         return f"conda activate fireworks\nssh -NfL 27017:localhost:27017 {self.ssh_manager.remote}"
 
     def setup_local_ssh_cmd(self, port, reverse_tunnel, remote_port=None, nohup=True):
+        print("[PerlmutterConfig] Ensure you have set up your SSH config (~/.ssh/config) for Perlmutter as described in the documentation, or SSH connections will fail.")
         if reverse_tunnel:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_manager.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_manager.ssh_key} -W %h:%p {self.ssh_manager.remote_proxy}' "
-                f"-NfR {port}:localhost:{port} {self.ssh_manager.remote}"
-            )
+            cmd = f"ssh -NfR {port}:localhost:{port} {self.ssh_manager.remote}"
         else:
-            cmd = (
-                f"ssh -o StrictHostKeyChecking=no "
-                f"-i {self.ssh_manager.ssh_key} "
-                f"-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i {self.ssh_manager.ssh_key} -W %h:%p {self.ssh_manager.remote_proxy}' "
-                f"-NfL *:{port}:localhost:{port} {self.ssh_manager.remote}"
-            )
+            cmd = f"ssh -NfL *:{port}:localhost:{port} {self.ssh_manager.remote}"
         print(f"setup_local_ssh_cmd: {cmd}")
         return cmd
 
